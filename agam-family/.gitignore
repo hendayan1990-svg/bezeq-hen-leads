@@ -39,3 +39,11 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# local visual QA outputs
+web-dist*/
+dist-router/
+edge-headless-agam/
+agam-*-preview*.png
+agam-onboarding-router.png
+*dom.txt
