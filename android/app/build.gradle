@@ -1,0 +1,20 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.hendayan.audio'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.hendayan.audio'
+        minSdk 26
+        targetSdk 35
+        versionCode 2
+        versionName '1.1.0'
+        buildConfigField 'String', 'ROOM_SECRET', '"2uYgnOjzUvIpNeqE9BFu82m5Vppf9TswDSST18x_ImU"'
+    }
+    buildFeatures { buildConfig true }
+    buildTypes { release { minifyEnabled false } }
+}
+
+dependencies {
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+}
