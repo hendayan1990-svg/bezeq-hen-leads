@@ -7,11 +7,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "agamfamily",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#06101D"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.agamfamily.app",
@@ -33,7 +28,9 @@
       "predictiveBackGestureEnabled": false
     },
     "plugins": [
-      ["expo-location", {"locationAlwaysAndWhenInUsePermission": "Allow AGAM Family to use your location for family safety features."}]
+      ["expo-location", {"locationAlwaysAndWhenInUsePermission": "Allow AGAM Family to use your location for family safety features."}],
+      "expo-font",
+      ["expo-splash-screen", {"image": "./assets/splash-icon.png", "imageWidth": 220, "resizeMode": "contain", "backgroundColor": "#06101D"}]
     ],
     "web": {
       "favicon": "./assets/favicon.png"
