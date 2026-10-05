@@ -38,7 +38,7 @@
 const $=id=>document.getElementById(id), SAMPLE_RATE=16000;
 const login=$('login'),player=$('player'),code=$('code'),connectBtn=$('connect'),disconnectBtn=$('disconnect'),muteBtn=$('mute'),status=$('status'),dot=$('dot'),meter=$('meter'),error=$('error'),audio=$('audio');
 let socket=null,key=null,ctx=null,gain=null,dest=null,nextTime=0,muted=false,connected=false,failures=0;
-const params=new URLSearchParams(location.hash.slice(1)); const room=params.get('r')||'';
+const params=new URLSearchParams(location.hash.slice(1)); const incomingRoom=params.get('r'); if(incomingRoom) localStorage.setItem('hen_room',incomingRoom); const room=incomingRoom||localStorage.getItem('hen_room')||'';
 const showError=m=>{error.textContent=m;error.classList.remove('hidden')}; const clearError=()=>error.classList.add('hidden');
 const setStatus=(t,live=false)=>{status.textContent=t;dot.className='dot'+(live?' live':'')};
 const bytesToHex=b=>[...b].map(x=>x.toString(16).padStart(2,'0')).join('');
