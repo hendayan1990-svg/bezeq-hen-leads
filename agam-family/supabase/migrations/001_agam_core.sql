@@ -193,6 +193,37 @@ as $$
   );
 $$;
 
+create or replace function private.can_add_member(p_family_id uuid)
+returns boolean
+language sql stable security definer set search_path = ''
+as $$
+  select (select count(*) from public.family_members fm where fm.family_id=p_family_id and fm.active=true) <
+    case coalesce((select f.plan from public.families f where f.id=p_family_id),'free')
+      when 'pro' then 10 when 'plus' then 6 else 2 end;
+$$;
+
+create or replace function private.can_add_safe_place(p_family_id uuid)
+returns boolean
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce((select f.plan from public.families f where f.id=p_family_id),'free') <> 'free'
+    or (select count(*) from public.safe_places sp where sp.family_id=p_family_id) < 2;
+$$;
+
+create or replace function private.can_use_safety_audio(p_family_id uuid)
+returns boolean
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce((select f.plan from public.families f where f.id=p_family_id),'free') in ('plus','pro');
+$$;
+
+revoke all on function private.can_add_member(uuid) from public;
+revoke all on function private.can_add_safe_place(uuid) from public;
+revoke all on function private.can_use_safety_audio(uuid) from public;
+grant execute on function private.can_add_member(uuid) to authenticated;
+grant execute on function private.can_add_safe_place(uuid) to authenticated;
+grant execute on function private.can_use_safety_audio(uuid) to authenticated;
+
 revoke all on function private.is_family_member(uuid) from public;
 revoke all on function private.is_family_guardian(uuid) from public;
 grant execute on function private.is_family_member(uuid) to authenticated;
@@ -244,6 +275,7 @@ begin
   if not private.is_family_guardian(p_family_id) then raise exception 'FORBIDDEN'; end if;
   if coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then raise exception 'PERMANENT_ACCOUNT_REQUIRED'; end if;
   if p_role not in ('child','guardian') then raise exception 'INVALID_ROLE'; end if;
+  if not private.can_add_member(p_family_id) then raise exception 'FAMILY_MEMBER_LIMIT'; end if;
 
   update public.pairing_codes
   set used_at = now()
@@ -313,6 +345,8 @@ begin
   if v_pair.role = 'guardian' and coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then
     raise exception 'PERMANENT_ACCOUNT_REQUIRED_FOR_GUARDIAN';
   end if;
+  if not exists (select 1 from public.family_members fm where fm.family_id=v_pair.family_id and fm.user_id=v_uid)
+     and not private.can_add_member(v_pair.family_id) then raise exception 'FAMILY_MEMBER_LIMIT'; end if;
 
   insert into public.profiles(user_id, display_name)
   values (v_uid, v_name)
@@ -372,8 +406,19 @@ alter table public.audio_sessions enable row level security;
 alter table public.privacy_events enable row level security;
 
 revoke all on public.pairing_codes from anon, authenticated;
-revoke all on all tables in schema public from anon;
-grant select, insert, update, delete on public.profiles, public.families, public.family_members, public.devices, public.locations, public.safe_places, public.check_ins, public.sos_alerts, public.audio_sessions, public.privacy_events to authenticated;
+revoke all on all tables in schema public from anon, authenticated;
+grant select, insert, update on public.profiles to authenticated;
+grant select on public.families to authenticated;
+grant update(name) on public.families to authenticated;
+grant select on public.family_members to authenticated;
+grant update(display_name) on public.family_members to authenticated;
+grant select, insert, update on public.devices to authenticated;
+grant select, insert on public.locations to authenticated;
+grant select, insert, update, delete on public.safe_places to authenticated;
+grant select, insert on public.check_ins to authenticated;
+grant select, insert, update on public.sos_alerts to authenticated;
+grant select, insert, update on public.audio_sessions to authenticated;
+grant select on public.privacy_events to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
 
 create policy profiles_self_select on public.profiles for select to authenticated
@@ -438,7 +483,7 @@ with check (
 create policy places_family_select on public.safe_places for select to authenticated
 using ((select private.is_family_member(family_id)));
 create policy places_guardian_insert on public.safe_places for insert to authenticated
-with check ((select private.is_family_guardian(family_id)) and created_by = (select auth.uid()));
+with check ((select private.is_family_guardian(family_id)) and created_by = (select auth.uid()) and (select private.can_add_safe_place(family_id)));
 create policy places_guardian_update on public.safe_places for update to authenticated
 using ((select private.is_family_guardian(family_id))) with check ((select private.is_family_guardian(family_id)));
 create policy places_guardian_delete on public.safe_places for delete to authenticated
@@ -477,6 +522,7 @@ create policy audio_guardian_request on public.audio_sessions for insert to auth
 with check (
   requested_by = (select auth.uid())
   and (select private.is_family_guardian(family_id))
+  and (select private.can_use_safety_audio(family_id))
   and exists (
     select 1 from public.family_members fm
     where fm.id = target_member_id and fm.family_id = audio_sessions.family_id and fm.user_id = target_user_id and fm.active = true
