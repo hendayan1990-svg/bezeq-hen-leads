@@ -53,7 +53,7 @@ export default function DashboardScreen(){
       <Pressable onPress={()=>router.push('/parent/pair')} style={styles.action}><View style={[styles.actionIcon,{backgroundColor:'rgba(10,140,255,.14)'}]}><Ionicons name="person-add" size={22} color={colors.cyan}/></View><Text style={styles.actionText}>Add member</Text></Pressable>
       <Pressable onPress={()=>router.push('/sos')} style={styles.action}><View style={[styles.actionIcon,{backgroundColor:'rgba(255,68,91,.13)'}]}><Ionicons name="alert-circle" size={22} color="#FF7284"/></View><Text style={styles.actionText}>SOS</Text></Pressable>
       <Pressable onPress={()=>router.push('/language')} style={styles.action}><View style={[styles.actionIcon,{backgroundColor:'rgba(124,103,255,.13)'}]}><Ionicons name="language" size={22} color="#A697FF"/></View><Text style={styles.actionText}>Language</Text></Pressable>
-      <Pressable onPress={()=>router.push('/demo')} style={styles.action}><View style={[styles.actionIcon,{backgroundColor:'rgba(45,227,154,.12)'}]}><Ionicons name="grid" size={22} color={colors.green}/></View><Text style={styles.actionText}>Features</Text></Pressable>
+      <Pressable onPress={()=>router.push('/plans')} style={styles.action}><View style={[styles.actionIcon,{backgroundColor:'rgba(54,197,255,.12)'}]}><Ionicons name="diamond" size={22} color={colors.cyan}/></View><Text style={styles.actionText}>AGAM Plus</Text></Pressable>
     </View>
 
     <Text style={[styles.section,rtl]}>Family members</Text>
