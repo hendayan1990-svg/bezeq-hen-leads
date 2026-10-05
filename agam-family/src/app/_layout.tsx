@@ -20,10 +20,12 @@ export default function RootLayout() {
     <LocaleProvider>
       <FeedbackProvider>
         <SafeAreaProvider>
-          <StatusBar style="light" />
-          <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: '#06101D' } }} />
+          <StatusBar style="dark" />
+          <Stack screenOptions={{ headerShown: false, animation: 'fade_from_bottom', contentStyle: { backgroundColor: '#F7FBFF' } }} />
         </SafeAreaProvider>
       </FeedbackProvider>
     </LocaleProvider>
   );
 }
+
+

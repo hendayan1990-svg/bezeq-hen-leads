@@ -172,7 +172,7 @@ export default function ProtectionScreen() {
 const styles = StyleSheet.create({
   statusCard: { flexDirection: 'row', alignItems: 'center', gap: 13 },
   statusIcon: { width: 52, height: 52, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  statusTitle: { color: 'white', fontSize: 15, fontWeight: '900' },
+  statusTitle: { color: colors.navy, fontSize: 15, fontWeight: '900' },
   statusText: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
   settings: { alignSelf: 'center', flexDirection: 'row', gap: 7, alignItems: 'center', padding: 8 },
   settingsText: { color: colors.cyan, fontSize: 10, fontWeight: '800' },
@@ -181,8 +181,8 @@ const styles = StyleSheet.create({
   sos: { width: 160, height: 160, borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 6, borderColor: 'rgba(255,255,255,.09)' },
   sosTitle: { color: 'white', fontSize: 34, fontWeight: '900' },
   sosText: { color: '#FFD4DA', fontSize: 10, fontWeight: '700' },
-  message: { flexDirection: 'row', gap: 9, padding: 13, borderRadius: 15, backgroundColor: 'rgba(10,140,255,.10)', borderWidth: 1, borderColor: 'rgba(54,197,255,.22)' },
-  messageText: { color: '#C7E9FA', fontSize: 11, lineHeight: 16, flex: 1 },
+  message: { flexDirection: 'row', gap: 9, padding: 13, borderRadius: 15, backgroundColor: '#EDF7FF', borderWidth: 1, borderColor: '#CFE7F4' },
+  messageText: { color: '#47657D', fontSize: 11, lineHeight: 16, flex: 1 },
   exit: { alignItems: 'center', padding: 10 },
-  exitText: { color: '#FF8898', fontSize: 11, textDecorationLine: 'underline' },
+  exitText: { color: '#D64C62', fontSize: 11, textDecorationLine: 'underline' },
 });

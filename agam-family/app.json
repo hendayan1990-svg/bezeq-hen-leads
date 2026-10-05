@@ -2,11 +2,14 @@
   "expo": {
     "name": "AGAM Family",
     "slug": "agam-family",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "scheme": "agamfamily",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.agamfamily.app",
@@ -17,7 +20,7 @@
     "android": {
       "package": "com.agamfamily.app",
       "adaptiveIcon": {
-        "backgroundColor": "#06101D",
+        "backgroundColor": "#F7FBFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -53,7 +56,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#06101D"
+          "backgroundColor": "#F7FBFF"
         }
       ],
       "expo-router",

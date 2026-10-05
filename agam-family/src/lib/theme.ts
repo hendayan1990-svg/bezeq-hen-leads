@@ -1,20 +1,24 @@
 export const colors = {
-  bg: '#06101D',
-  bg2: '#081625',
-  panel: '#0C1B2E',
-  panel2: '#10243B',
-  line: '#193A5C',
-  text: '#F6FAFF',
-  muted: '#91A6BE',
-  blue: '#0A8CFF',
-  cyan: '#36C5FF',
-  green: '#2DE39A',
-  red: '#FF445B',
-  orange: '#FF9D42',
-  purple: '#7C67FF',
+  bg: '#F7FBFF',
+  bg2: '#EFFAF7',
+  panel: '#FFFFFF',
+  panel2: '#F4FAFF',
+  line: '#DCEAF3',
+  text: '#0B2A4A',
+  muted: '#71869A',
+  blue: '#0B86FF',
+  cyan: '#24C8E8',
+  mint: '#27D7AE',
+  green: '#16C98D',
+  red: '#FF5A6B',
+  orange: '#FFA544',
+  purple: '#8A6CFF',
+  navy: '#0B315E',
+  softBlue: '#EAF5FF',
+  softMint: '#E8FBF5',
+  softPink: '#FFF0F3',
 };
 
-// Compatibility alias used by the first-generation screens.
 export const C = colors;
 
 export const radii = {

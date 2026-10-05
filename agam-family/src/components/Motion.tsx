@@ -1,20 +1,9 @@
 import React, { useEffect } from 'react';
-import { Image, Pressable, StyleProp, StyleSheet, ViewStyle } from 'react-native';
+import { Pressable, StyleProp, StyleSheet, ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import Animated, {
-  Easing,
-  FadeInDown,
-  FadeInRight,
-  interpolate,
-  useAnimatedProps,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, FadeInRight, interpolate, useAnimatedProps, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useFeedback } from '../lib/feedback';
+import { AgamMark } from './AgamLogo';
 
 const APressable = Animated.createAnimatedComponent(Pressable);
 const APath = Animated.createAnimatedComponent(Path);
@@ -41,11 +30,11 @@ export function Floating({ children, distance = 7, duration = 1500, style }: any
 export function PulseRing({ color = '#16B6FF', size = 72, style }: any) {
   const p = useSharedValue(0);
   useEffect(() => { p.value = withRepeat(withTiming(1, { duration: 1650, easing: Easing.out(Easing.quad) }), -1, false); }, []);
-  const ring = useAnimatedStyle(() => ({ opacity: interpolate(p.value, [0, .55, 1], [.5, .22, 0]), transform: [{ scale: interpolate(p.value, [0, 1], [.72, 1.42]) }] }));
+  const ring = useAnimatedStyle(() => ({ opacity: interpolate(p.value, [0, .55, 1], [.42, .18, 0]), transform: [{ scale: interpolate(p.value, [0, 1], [.72, 1.42]) }] }));
   return <Animated.View pointerEvents="none" style={[{ position:'absolute', width:size, height:size, borderRadius:size, borderWidth:2, borderColor:color }, style, ring]} />;
 }
 
-export function AnimatedRoute({ color='#1AA8FF' }: { color?: string }) {
+export function AnimatedRoute({ color='#149DFF' }: { color?: string }) {
   const offset=useSharedValue(90);
   useEffect(()=>{offset.value=withRepeat(withTiming(0,{duration:2200,easing:Easing.linear}),-1,false);},[]);
   const animatedProps=useAnimatedProps(()=>({strokeDashoffset:offset.value} as any));
@@ -53,9 +42,9 @@ export function AnimatedRoute({ color='#1AA8FF' }: { color?: string }) {
 }
 
 export function AnimatedBrandMark({ size = 104 }: { size?: number }) {
-  const scale = useSharedValue(.72); const rotate = useSharedValue(-8); const glow = useSharedValue(.25);
-  useEffect(() => { scale.value = withSpring(1, { damping: 13, stiffness: 130 }); rotate.value = withSpring(0, { damping: 13, stiffness: 120 }); glow.value = withRepeat(withSequence(withTiming(.65,{duration:1100}),withTiming(.22,{duration:1100})), -1, false); }, []);
+  const scale = useSharedValue(.72); const rotate = useSharedValue(-7); const glow = useSharedValue(.2);
+  useEffect(() => { scale.value = withSpring(1, { damping: 13, stiffness: 130 }); rotate.value = withSpring(0, { damping: 13, stiffness: 120 }); glow.value = withRepeat(withSequence(withTiming(.5,{duration:1100}),withTiming(.12,{duration:1100})), -1, false); }, []);
   const icon = useAnimatedStyle(() => ({ transform:[{scale:scale.value},{rotate:`${rotate.value}deg`}] }));
-  const halo = useAnimatedStyle(() => ({ opacity:glow.value, transform:[{scale:1.18}] }));
-  return <Animated.View style={{ width:size, height:size, alignItems:'center', justifyContent:'center' }}><Animated.View style={[{ position:'absolute', width:size*.86, height:size*.86, borderRadius:size, backgroundColor:'#18B8FF', shadowColor:'#18B8FF', shadowOpacity:.75, shadowRadius:28 }, halo]} /><Animated.View style={icon}><Image source={require('../../assets/icon.png')} style={{ width:size*.86, height:size*.86, borderRadius:size*.23 }} /></Animated.View></Animated.View>;
+  const halo = useAnimatedStyle(() => ({ opacity:glow.value, transform:[{scale:1.16}] }));
+  return <Animated.View style={{ width:size, height:size, alignItems:'center', justifyContent:'center' }}><Animated.View style={[{ position:'absolute', width:size*.82, height:size*.82, borderRadius:size, backgroundColor:'#39DCC4', shadowColor:'#22C8D0', shadowOpacity:.35, shadowRadius:28 }, halo]} /><Animated.View style={icon}><AgamMark size={size*.88}/></Animated.View></Animated.View>;
 }

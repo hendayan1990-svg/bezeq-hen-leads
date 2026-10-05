@@ -1,80 +1,79 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Card, Logo, Screen } from '../components/BrandShell';
-import { AnimatedRoute, Floating, MotionPressable, PulseRing, Reveal } from '../components/Motion';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AgamLogo } from '../components/AgamLogo';
+import NativeFamilyMap from '../components/NativeFamilyMap';
+import { MotionPressable, PulseRing, Reveal } from '../components/Motion';
 import { colors } from '../lib/theme';
 import { useFamilyRealtime } from '../lib/realtime';
 import { supabaseConfigured } from '../lib/supabase';
 import { useLocale } from '../lib/locale';
 
-function ago(iso?:string){
-  if(!iso)return 'No location yet';
-  const sec=Math.max(0,Math.floor((Date.now()-new Date(iso).getTime())/1000));
-  if(sec<60)return `${sec}s ago`;
-  const min=Math.floor(sec/60); if(min<60)return `${min}m ago`;
-  return `${Math.floor(min/60)}h ago`;
-}
+const demoMembers=[
+  {id:'1',display_name:'Noa',role:'child',latestLocation:{recorded_at:new Date().toISOString()}},
+  {id:'2',display_name:'Dad',role:'parent',latestLocation:{recorded_at:new Date().toISOString()}},
+  {id:'3',display_name:'Liam',role:'child',latestLocation:{recorded_at:new Date().toISOString()}},
+];
+const avatars=['#19C99A','#8A6CFF','#FFA544','#0A8CFF'];
 
-const avatarColors=['#25D49A','#7768FF','#FF9D42','#18B8E8','#ED62AC','#65B2FF'];
+function Quick({icon,label,color,bg,onPress}:any){return <MotionPressable onPress={onPress} style={styles.quick}><View style={[styles.quickIcon,{backgroundColor:bg}]}><Ionicons name={icon} size={21} color={color}/></View><Text style={styles.quickLabel}>{label}</Text></MotionPressable>}
 
-function MapMarker({ member, index }: any){
-  const c=avatarColors[index%avatarColors.length];
-  return <Floating distance={5+(index%2)*2} duration={1350+index*130} style={[styles.mapMember,{left:`${12+(index%2)*49}%`,top:`${35+Math.floor(index/2)*31}%`}]}> 
-    <View style={styles.markerPulse}><PulseRing color={c} size={58}/><LinearGradient colors={[c,colors.blue]} style={styles.marker}><Text style={styles.markerText}>{member.display_name?.slice(0,1).toUpperCase()||'?'}</Text></LinearGradient></View>
-    <View style={styles.markerLabel}><Text style={styles.markerName}>{member.display_name}</Text><Text style={styles.markerTime}>{ago(member.latestLocation?.recorded_at)}</Text></View>
-  </Floating>;
-}
-
-function Action({ icon, label, color, bg, onPress }: any){
-  return <MotionPressable onPress={onPress} style={styles.action}><View style={[styles.actionIcon,{backgroundColor:bg}]}><Ionicons name={icon} size={22} color={color}/></View><Text style={styles.actionText}>{label}</Text></MotionPressable>;
+function BottomNav(){
+  return <View style={styles.nav}>
+    <MotionPressable onPress={()=>{}} style={styles.navItem}><Ionicons name="map" size={23} color={colors.blue}/><Text style={[styles.navText,{color:colors.blue}]}>Map</Text></MotionPressable>
+    <MotionPressable onPress={()=>router.push('/parent/pair')} style={styles.navItem}><Ionicons name="people" size={23} color="#8498AA"/><Text style={styles.navText}>Family</Text></MotionPressable>
+    <MotionPressable onPress={()=>router.push('/sos')} style={styles.sosNav}><LinearGradient colors={['#FF6674','#F23F59']} style={styles.sosCircle}><Ionicons name="alert" size={25} color="white"/></LinearGradient><Text style={[styles.navText,{color:colors.red}]}>SOS</Text></MotionPressable>
+    <MotionPressable onPress={()=>router.push('/plans')} style={styles.navItem}><Ionicons name="diamond" size={22} color="#8A6CFF"/><Text style={styles.navText}>Plus</Text></MotionPressable>
+    <MotionPressable onPress={()=>router.push('/language')} style={styles.navItem}><Ionicons name="menu" size={23} color="#8498AA"/><Text style={styles.navText}>More</Text></MotionPressable>
+  </View>
 }
 
 export default function DashboardScreen(){
   const {locale,isRTL}=useLocale();
   const live=useFamilyRealtime();
+  const he=locale==='he';
+  const members=supabaseConfigured&&live.members.length?live.members:demoMembers;
   const rtl:any=isRTL?{textAlign:'right',writingDirection:'rtl'}:undefined;
+  const activeSos=supabaseConfigured?live.activeSos:[];
 
-  if(!supabaseConfigured){
-    return <Screen><Reveal><Logo/></Reveal><Reveal delay={90}><Card style={styles.center}><Ionicons name="cloud-offline" size={34} color={colors.cyan}/><Text style={[styles.title,rtl]}>{locale==='he'?'מצב Preview':'Preview mode'}</Text><Text style={[styles.sub,rtl]}>{locale==='he'?'הדשבורד החי יופעל אוטומטית כשהענן מחובר. כרגע אפשר להמשיך לדמו האינטראקטיבי.':'The live dashboard activates automatically when the secure cloud is connected. You can keep exploring the interactive demo now.'}</Text></Card></Reveal><Reveal delay={170}><MotionPressable onPress={()=>router.replace('/demo')}><LinearGradient colors={['#16B6FF','#0874FF']} style={styles.primary}><Ionicons name="sparkles" size={19} color="white"/><Text style={styles.primaryText}>{locale==='he'?'פתיחת הדמו':'Open interactive demo'}</Text></LinearGradient></MotionPressable></Reveal></Screen>;
-  }
+  return <LinearGradient colors={['#FBFEFF','#F3FAFF','#F7FFFC']} style={styles.app}>
+    <SafeAreaView style={styles.safe}>
+      <View style={[styles.header,isRTL&&{flexDirection:'row-reverse'}]}>
+        <AgamLogo compact rtl={isRTL}/>
+        <View style={styles.livePill}>{supabaseConfigured&&live.connected?<PulseRing color={colors.green} size={25}/>:null}<View style={[styles.liveDot,{backgroundColor:supabaseConfigured&&live.connected?colors.green:'#F3B34C'}]}/><Text style={styles.liveText}>{supabaseConfigured?(live.connected?'LIVE':'SYNC'):'DEMO'}</Text></View>
+      </View>
 
-  if(live.loading){return <Screen><Logo/><View style={styles.loading}><ActivityIndicator size="large" color={colors.cyan}/><Text style={styles.sub}>Loading your private family circle…</Text></View></Screen>}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <Reveal delay={20}><View style={[styles.heading,isRTL&&{flexDirection:'row-reverse'}]}><View style={{flex:1}}><Text style={[styles.safeKicker,rtl]}>{activeSos.length?(he?'נדרשת תשומת לב':'ATTENTION NEEDED'):(he?'כולם בטוחים':'EVERYONE IS SAFE')}</Text><Text style={[styles.title,rtl]}>{he?'המשפחה שלי':'My family'}</Text><Text style={[styles.sub,rtl]}>{he?'מיקום חי ועדכוני בטיחות במקום אחד':'Live location and safety at a glance'}</Text></View><MotionPressable onPress={()=>router.push('/parent/pair')} style={styles.add}><Ionicons name="person-add" size={20} color={colors.blue}/></MotionPressable></View></Reveal>
 
-  return <Screen>
-    <Reveal><View style={[styles.top,isRTL&&{flexDirection:'row-reverse'}]}><Logo/><View style={[styles.livePill,{borderColor:live.connected?'rgba(45,227,154,.35)':'rgba(255,157,66,.35)'}]}><View style={styles.liveDotWrap}>{live.connected?<PulseRing color={colors.green} size={25}/>:null}<View style={[styles.dot,{backgroundColor:live.connected?colors.green:colors.orange}]}/></View><Text style={[styles.liveText,{color:live.connected?'#9AF0CB':'#FFD09D'}]}>{live.connected?'LIVE':'CONNECTING'}</Text></View></View></Reveal>
+        {activeSos.length?<Reveal delay={70}><MotionPressable onPress={()=>router.push('/sos')}><View style={styles.alert}><View style={styles.alertIcon}><Ionicons name="alert" size={21} color="white"/></View><View style={{flex:1}}><Text style={styles.alertTitle}>Emergency SOS active</Text><Text style={styles.alertSub}>Tap to open emergency details</Text></View><Ionicons name="chevron-forward" size={19} color={colors.red}/></View></MotionPressable></Reveal>:null}
 
-    <Reveal delay={70}><View style={[styles.headingRow,isRTL&&{flexDirection:'row-reverse'}]}><View style={{flex:1}}><Text style={[styles.kicker,rtl]}>{live.activeSos.length?'ATTENTION NEEDED':'EVERYONE IS SAFE'}</Text><Text style={[styles.title,rtl]}>{live.family?.name||'Your family'}</Text></View><MotionPressable onPress={()=>router.push('/parent/pair')} style={styles.add}><Ionicons name="person-add" size={20} color={colors.cyan}/></MotionPressable></View></Reveal>
+        <Reveal delay={90}><NativeFamilyMap members={members}/></Reveal>
 
-    {live.activeSos.length>0?<Reveal delay={105}><MotionPressable onPress={()=>router.push('/sos')} feedback={false}><LinearGradient colors={['#5B1724','#2D111A']} style={styles.sosBanner}><View style={styles.sosIcon}><Ionicons name="alert" size={23} color="white"/></View><View style={{flex:1}}><Text style={styles.sosTitle}>Emergency SOS active</Text><Text style={styles.sosSub}>{live.activeSos.length} active alert{live.activeSos.length>1?'s':''} in your family circle</Text></View><Ionicons name="chevron-forward" size={20} color="#FFB8C1"/></LinearGradient></MotionPressable></Reveal>:null}
+        <Reveal delay={155}><View style={styles.quickRow}>
+          <Quick icon="location" label={he?'אזורים':'Places'} color={colors.blue} bg={colors.softBlue} onPress={()=>router.push('/demo')}/>
+          <Quick icon="time" label={he?'היסטוריה':'History'} color={colors.purple} bg="#F1EDFF" onPress={()=>router.push('/demo')}/>
+          <Quick icon="mic" label={he?'שמע בטיחותי':'Safety Audio'} color="#07AFAE" bg="#E9FAF8" onPress={()=>router.push('/demo')}/>
+          <Quick icon="checkmark-circle" label={he?'צ׳ק־אין':'Check-in'} color={colors.green} bg={colors.softMint} onPress={()=>{}}/>
+        </View></Reveal>
 
-    <Reveal delay={135}><View style={styles.mapCard}>
-      <View style={styles.mapGrid}/><View style={styles.mapGrid2}/><View style={styles.mapRoad}/><View style={styles.mapRoad2}/><AnimatedRoute/>
-      <View style={styles.mapHeader}><View style={styles.protected}><Ionicons name="shield-checkmark" size={15} color={colors.green}/><Text style={styles.protectedText}>Private family map</Text></View><View style={styles.layers}><Ionicons name="layers" size={18} color="#CDEEFF"/></View></View>
-      <View style={styles.mapMembers}>{live.members.slice(0,4).map((m,i)=><MapMarker key={m.id} member={m} index={i}/>)}</View>
-      <View style={styles.mapFooter}><Ionicons name="lock-closed" size={13} color={colors.green}/><Text style={styles.mapFooterText}>Family-only • realtime updates • RLS protected</Text></View>
-    </View></Reveal>
+        <Reveal delay={210}><View style={[styles.sectionHead,isRTL&&{flexDirection:'row-reverse'}]}><Text style={[styles.sectionTitle,rtl]}>{he?'בני המשפחה':'Family members'}</Text><MotionPressable onPress={()=>router.push('/parent/pair')}><Text style={styles.addText}>{he?'הוספה':'Add'}</Text></MotionPressable></View></Reveal>
+        <View style={styles.members}>
+          {members.slice(0,4).map((m:any,i:number)=><Reveal key={m.id||i} delay={240+i*45}><MotionPressable onPress={()=>router.push('/demo')} style={styles.memberCard}><View style={[styles.avatarRing,{borderColor:avatars[i%avatars.length]}]}><View style={[styles.avatar,{backgroundColor:avatars[i%avatars.length]}]}><Text style={styles.avatarText}>{(m.display_name||'?').slice(0,1).toUpperCase()}</Text></View><View style={styles.online}/></View><View style={{flex:1}}><Text style={[styles.memberName,rtl]}>{m.display_name}</Text><Text style={[styles.memberMeta,rtl]}>{i===0?(he?'בבית • עכשיו':'At home • now'):(he?`${i+1} דקות לפני`:`${i+1} min ago`)}</Text></View><View style={styles.battery}><Ionicons name="battery-half" size={18} color={colors.green}/><Text style={styles.batteryText}>{87-i*6}%</Text></View><Ionicons name={isRTL?'chevron-back':'chevron-forward'} size={18} color="#9AAEBD"/></MotionPressable></Reveal>)}
+        </View>
 
-    <Reveal delay={210}><View style={styles.actions}>
-      <Action icon="person-add" label="Add member" color={colors.cyan} bg="rgba(10,140,255,.14)" onPress={()=>router.push('/parent/pair')}/>
-      <Action icon="alert-circle" label="SOS" color="#FF7284" bg="rgba(255,68,91,.13)" onPress={()=>router.push('/sos')}/>
-      <Action icon="language" label="Language" color="#A697FF" bg="rgba(124,103,255,.13)" onPress={()=>router.push('/language')}/>
-      <Action icon="diamond" label="AGAM Plus" color={colors.cyan} bg="rgba(54,197,255,.12)" onPress={()=>router.push('/plans')}/>
-    </View></Reveal>
+        <Reveal delay={330}><MotionPressable onPress={()=>router.push('/plans')}><LinearGradient colors={['#F2ECFF','#E8F5FF']} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.plusCard}><View style={styles.crown}><Ionicons name="diamond" size={20} color="#7658E8"/></View><View style={{flex:1}}><Text style={styles.plusTitle}>AGAM Family Plus</Text><Text style={styles.plusSub}>{he?'יותר היסטוריה, יותר אזורים, יותר שקט':'More history, more places, more peace of mind'}</Text></View><Ionicons name={isRTL?'chevron-back':'chevron-forward'} size={20} color="#7658E8"/></LinearGradient></MotionPressable></Reveal>
 
-    <Text style={[styles.section,rtl]}>Family members</Text>
-    {live.members.map((m,i)=><Reveal key={m.id} delay={250+i*55}><MotionPressable onPress={()=>{}} style={styles.memberPress}><Card style={styles.memberCard}><LinearGradient colors={[avatarColors[i%avatarColors.length], '#12324A']} style={styles.avatar}><Text style={styles.avatarText}>{m.display_name?.slice(0,1).toUpperCase()||'?'}</Text></LinearGradient><View style={{flex:1}}><View style={styles.nameRow}><Text style={[styles.memberName,rtl]}>{m.display_name}</Text><Text style={styles.role}>{m.role.toUpperCase()}</Text></View><Text style={[styles.memberSub,rtl]}>{m.latestLocation?`${m.latestLocation.latitude.toFixed(4)}, ${m.latestLocation.longitude.toFixed(4)} • ${ago(m.latestLocation.recorded_at)}`:'Waiting for first location update'}</Text></View><Ionicons name="chevron-forward" size={19} color={colors.muted}/></Card></MotionPressable></Reveal>)}
-
-    {live.error?<Card style={styles.error}><Ionicons name="warning" size={19} color="#FF9D42"/><Text style={styles.errorText}>{live.error}</Text></Card>:null}
-    <Text style={styles.footer}>AGAM Family • private by design • monitoring indicators remain visible on family-member devices</Text>
-  </Screen>;
+        {!supabaseConfigured?<Text style={styles.previewNote}>{he?'מוצגים נתוני דמו עד לחיבור הענן המאובטח.':'Preview data is shown until the secure cloud is connected.'}</Text>:live.loading?<ActivityIndicator color={colors.blue}/>:live.error?<Text style={styles.previewNote}>{live.error}</Text>:null}
+      </ScrollView>
+      <BottomNav/>
+    </SafeAreaView>
+  </LinearGradient>;
 }
 
 const styles=StyleSheet.create({
-  top:{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start'},livePill:{flexDirection:'row',alignItems:'center',gap:7,paddingHorizontal:10,paddingVertical:7,borderRadius:999,borderWidth:1,backgroundColor:'#081B2D'},liveDotWrap:{width:17,height:17,alignItems:'center',justifyContent:'center'},dot:{width:7,height:7,borderRadius:99},liveText:{fontSize:9,fontWeight:'900',letterSpacing:1},headingRow:{flexDirection:'row',alignItems:'center',gap:12},kicker:{color:colors.green,fontSize:10,fontWeight:'900',letterSpacing:1.1},title:{color:'white',fontSize:27,fontWeight:'900',marginTop:3},sub:{color:colors.muted,fontSize:12,lineHeight:18,textAlign:'center'},add:{width:44,height:44,borderRadius:14,backgroundColor:'#0B2137',borderWidth:1,borderColor:'#245278',alignItems:'center',justifyContent:'center'},center:{alignItems:'center',gap:10,paddingVertical:26},primary:{height:56,borderRadius:17,flexDirection:'row',gap:8,alignItems:'center',justifyContent:'center'},primaryText:{color:'white',fontWeight:'900'},loading:{flex:1,minHeight:360,alignItems:'center',justifyContent:'center',gap:12},
-  sosBanner:{borderRadius:20,padding:14,flexDirection:'row',alignItems:'center',gap:11,borderWidth:1,borderColor:'rgba(255,68,91,.30)'},sosIcon:{width:44,height:44,borderRadius:14,backgroundColor:'#D7253E',alignItems:'center',justifyContent:'center'},sosTitle:{color:'white',fontWeight:'900',fontSize:13},sosSub:{color:'#FFB6C0',fontSize:10,marginTop:3},
-  mapCard:{height:320,borderRadius:28,overflow:'hidden',backgroundColor:'#071A29',borderWidth:1,borderColor:'#1B4B6E',position:'relative'},mapGrid:{position:'absolute',left:-50,right:-50,top:92,height:16,backgroundColor:'#103A56',transform:[{rotate:'-8deg'}]},mapGrid2:{position:'absolute',left:-60,right:-60,top:220,height:12,backgroundColor:'#10344D',transform:[{rotate:'5deg'}]},mapRoad:{position:'absolute',top:-40,bottom:-40,left:120,width:15,backgroundColor:'#123D59',transform:[{rotate:'10deg'}]},mapRoad2:{position:'absolute',top:-40,bottom:-40,right:105,width:10,backgroundColor:'#0D3049',transform:[{rotate:'-7deg'}]},mapHeader:{position:'absolute',left:14,right:14,top:14,flexDirection:'row',justifyContent:'space-between'},protected:{flexDirection:'row',gap:6,alignItems:'center',paddingHorizontal:10,paddingVertical:7,borderRadius:999,backgroundColor:'rgba(4,20,33,.84)',borderWidth:1,borderColor:'rgba(45,227,154,.23)'},protectedText:{color:'#D8F5E9',fontSize:10,fontWeight:'800'},layers:{width:38,height:38,borderRadius:13,backgroundColor:'rgba(4,20,33,.85)',alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:'#24506E'},mapMembers:{position:'absolute',inset:0},mapMember:{position:'absolute',flexDirection:'row',alignItems:'center',gap:6},markerPulse:{width:50,height:50,alignItems:'center',justifyContent:'center'},marker:{width:42,height:42,borderRadius:99,borderWidth:3,borderColor:'white',alignItems:'center',justifyContent:'center'},markerText:{color:'white',fontWeight:'900'},markerLabel:{backgroundColor:'rgba(5,20,34,.90)',borderRadius:10,paddingHorizontal:8,paddingVertical:5,borderWidth:1,borderColor:'#24516F'},markerName:{color:'white',fontSize:10,fontWeight:'900'},markerTime:{color:colors.muted,fontSize:8,marginTop:1},mapFooter:{position:'absolute',bottom:12,left:14,right:14,flexDirection:'row',gap:6,alignItems:'center',backgroundColor:'rgba(4,18,31,.84)',paddingHorizontal:10,paddingVertical:7,borderRadius:12},mapFooterText:{color:'#91ABC0',fontSize:9},
-  actions:{flexDirection:'row',justifyContent:'space-between',gap:7},action:{flex:1,alignItems:'center',gap:6},actionIcon:{width:46,height:46,borderRadius:15,alignItems:'center',justifyContent:'center'},actionText:{color:'#C9D9E7',fontSize:9,fontWeight:'700',textAlign:'center'},section:{color:'white',fontSize:16,fontWeight:'900',marginTop:4},memberPress:{borderRadius:22},memberCard:{flexDirection:'row',alignItems:'center',gap:11,padding:13},avatar:{width:47,height:47,borderRadius:99,alignItems:'center',justifyContent:'center'},avatarText:{color:'white',fontWeight:'900',fontSize:17},nameRow:{flexDirection:'row',alignItems:'center',gap:7},memberName:{color:'white',fontWeight:'900',fontSize:13},role:{color:colors.cyan,fontSize:7,fontWeight:'900',letterSpacing:.7},memberSub:{color:colors.muted,fontSize:9,marginTop:4},error:{flexDirection:'row',gap:8,alignItems:'flex-start',borderColor:'rgba(255,157,66,.35)'},errorText:{color:'#FFD1A4',fontSize:10,lineHeight:15,flex:1},footer:{color:'#5D7489',fontSize:8,lineHeight:13,textAlign:'center',paddingHorizontal:16}
+  app:{flex:1},safe:{flex:1},header:{height:68,paddingHorizontal:18,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},livePill:{height:34,paddingHorizontal:11,borderRadius:999,backgroundColor:'#FFFFFF',borderWidth:1,borderColor:'#DCEAF2',flexDirection:'row',gap:6,alignItems:'center',position:'relative'},liveDot:{width:7,height:7,borderRadius:99},liveText:{fontSize:8,fontWeight:'900',color:colors.navy,letterSpacing:.8},scroll:{paddingHorizontal:18,paddingBottom:112,gap:15},heading:{flexDirection:'row',alignItems:'center',gap:10},safeKicker:{color:colors.green,fontSize:10,fontWeight:'900',letterSpacing:1},title:{color:colors.navy,fontSize:29,fontWeight:'900',letterSpacing:-.7,marginTop:2},sub:{color:colors.muted,fontSize:10,marginTop:3},add:{width:45,height:45,borderRadius:16,backgroundColor:'#FFFFFF',borderWidth:1,borderColor:'#D9E9F1',alignItems:'center',justifyContent:'center',shadowColor:'#25668C',shadowOpacity:.08,shadowRadius:10,elevation:1},alert:{minHeight:66,borderRadius:20,backgroundColor:'#FFF2F4',borderWidth:1,borderColor:'#FFD2D8',padding:11,flexDirection:'row',gap:10,alignItems:'center'},alertIcon:{width:42,height:42,borderRadius:14,backgroundColor:colors.red,alignItems:'center',justifyContent:'center'},alertTitle:{color:'#A43042',fontWeight:'900',fontSize:12},alertSub:{color:'#B56D78',fontSize:9,marginTop:2},quickRow:{flexDirection:'row',gap:7},quick:{flex:1,alignItems:'center',gap:6},quickIcon:{width:48,height:48,borderRadius:16,alignItems:'center',justifyContent:'center'},quickLabel:{color:'#536C82',fontSize:8,fontWeight:'800',textAlign:'center'},sectionHead:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},sectionTitle:{color:colors.navy,fontSize:16,fontWeight:'900'},addText:{color:colors.blue,fontSize:10,fontWeight:'900'},members:{gap:9},memberCard:{minHeight:72,borderRadius:21,backgroundColor:'#FFFFFF',borderWidth:1,borderColor:'#DFEAF0',padding:11,flexDirection:'row',gap:10,alignItems:'center',shadowColor:'#2D6D91',shadowOpacity:.05,shadowRadius:12,elevation:1},avatarRing:{width:48,height:48,borderRadius:99,borderWidth:2,alignItems:'center',justifyContent:'center',position:'relative'},avatar:{width:40,height:40,borderRadius:99,alignItems:'center',justifyContent:'center'},avatarText:{color:'white',fontWeight:'900',fontSize:15},online:{position:'absolute',right:-1,bottom:-1,width:12,height:12,borderRadius:99,backgroundColor:colors.green,borderWidth:2,borderColor:'white'},memberName:{color:colors.navy,fontWeight:'900',fontSize:12},memberMeta:{color:colors.muted,fontSize:9,marginTop:3},battery:{flexDirection:'row',gap:3,alignItems:'center'},batteryText:{color:'#4F7D69',fontSize:8,fontWeight:'800'},plusCard:{minHeight:76,borderRadius:22,padding:13,flexDirection:'row',gap:10,alignItems:'center',borderWidth:1,borderColor:'#DDD7FA'},crown:{width:44,height:44,borderRadius:15,backgroundColor:'rgba(138,108,255,.12)',alignItems:'center',justifyContent:'center'},plusTitle:{color:'#4B369A',fontSize:13,fontWeight:'900'},plusSub:{color:'#786E9A',fontSize:9,marginTop:3},previewNote:{color:'#8AA0B2',fontSize:8,textAlign:'center',lineHeight:13,paddingHorizontal:20},nav:{height:76,borderTopWidth:1,borderColor:'#E2ECF2',backgroundColor:'rgba(255,255,255,.98)',flexDirection:'row',alignItems:'center',justifyContent:'space-around',paddingBottom:5},navItem:{flex:1,alignItems:'center',justifyContent:'center',gap:3},navText:{fontSize:8,color:'#879BAC',fontWeight:'700'},sosNav:{flex:1,alignItems:'center',justifyContent:'center',gap:1},sosCircle:{width:54,height:54,borderRadius:99,alignItems:'center',justifyContent:'center',marginTop:-24,borderWidth:4,borderColor:'#FFFFFF',shadowColor:colors.red,shadowOpacity:.22,shadowRadius:12,elevation:3}
 });
