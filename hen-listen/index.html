@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a1020">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hen Listen">
+<title>Hen Listen</title>
+<style>
+:root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#172448 0,#0a1020 46%,#070b15 100%);color:#fff;display:grid;place-items:center;padding:22px}.wrap{width:min(100%,440px)}.card{background:rgba(17,25,47,.94);border:1px solid #293653;border-radius:26px;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.38)}.brand{display:flex;gap:14px;align-items:center;margin-bottom:24px}.logo{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:#6d7eff;font-size:24px;box-shadow:0 10px 30px rgba(109,126,255,.28)}h1{margin:0;font-size:27px}p{color:#aab5cf;line-height:1.5;margin:6px 0 0}label{display:block;color:#dce4f5;font-size:14px;margin:12px 0 8px}input{width:100%;height:54px;border-radius:16px;border:1px solid #34415e;background:#0d1528;color:white;padding:0 16px;font-size:17px;outline:none}button{width:100%;height:54px;border:0;border-radius:16px;font-weight:700;font-size:16px;margin-top:12px}.primary{background:#7182ff;color:white}.secondary{background:#202b46;color:#e8edff}.danger{background:#3c2028;color:#ffc3cc}.hidden{display:none}.status{display:flex;align-items:center;gap:10px;background:#0d1528;border:1px solid #2d3853;padding:14px;border-radius:16px;margin:8px 0 14px}.dot{width:11px;height:11px;border-radius:50%;background:#8c97af}.dot.live{background:#38d68b;box-shadow:0 0 0 6px rgba(56,214,139,.12)}.meter{height:8px;background:#0a1020;border-radius:20px;overflow:hidden;margin:14px 0 18px}.meter>div{height:100%;width:0;background:linear-gradient(90deg,#7081ff,#47d49a);transition:width .08s linear}.error{margin-top:14px;background:#391c24;color:#ffbec8;border:1px solid #6b2c39;padding:12px;border-radius:14px}.tip{margin-top:14px;padding:15px 17px;border:1px solid #26334e;border-radius:18px;color:#aeb9d1;background:rgba(11,17,33,.7);font-size:14px;line-height:1.55}.privacy{text-align:center;font-size:12px;margin-top:18px;color:#7f8ba5}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <section class="card">
+  <div class="brand"><div class="logo">◉</div><div><h1>Hen Listen</h1><p>האזנה פרטית ומוצפנת מהמכשיר שלך</p></div></div>
+  <div id="login">
+   <label for="code">קוד כניסה</label>
+   <input id="code" type="password" autocomplete="current-password" placeholder="הזן קוד">
+   <button id="connect" class="primary">התחבר והאזן</button>
+  </div>
+  <div id="player" class="hidden">
+   <div class="status"><span id="dot" class="dot"></span><strong id="status">מתחבר…</strong></div>
+   <div class="meter"><div id="meter"></div></div>
+   <button id="mute" class="secondary">השתק</button>
+   <button id="disconnect" class="danger">התנתק</button>
+   <audio id="audio" autoplay playsinline></audio>
+  </div>
+  <div id="error" class="error hidden"></div>
+  <div class="privacy">האודיו מוצפן מקצה לקצה ואינו נשמר בדף.</div>
+ </section>
+ <div class="tip"><strong>באייפון:</strong> פתח ב‑Safari → שיתוף → “הוסף למסך הבית”.</div>
+</div>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id), SAMPLE_RATE=16000;
+const login=$('login'),player=$('player'),code=$('code'),connectBtn=$('connect'),disconnectBtn=$('disconnect'),muteBtn=$('mute'),status=$('status'),dot=$('dot'),meter=$('meter'),error=$('error'),audio=$('audio');
+let socket=null,key=null,ctx=null,gain=null,dest=null,nextTime=0,muted=false,connected=false,failures=0;
+const params=new URLSearchParams(location.hash.slice(1)); const room=params.get('r')||'';
+const showError=m=>{error.textContent=m;error.classList.remove('hidden')}; const clearError=()=>error.classList.add('hidden');
+const setStatus=(t,live=false)=>{status.textContent=t;dot.className='dot'+(live?' live':'')};
+const bytesToHex=b=>[...b].map(x=>x.toString(16).padStart(2,'0')).join('');
+const b64ToBytes=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function sha256(s){return new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))}
+async function deriveKey(password){const enc=new TextEncoder();const km=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt:enc.encode('hen-audio-v1|'+room),iterations:200000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt'])}
+async function initAudio(){if(!ctx){const AC=window.AudioContext||window.webkitAudioContext;ctx=new AC({latencyHint:'interactive'});gain=ctx.createGain();dest=ctx.createMediaStreamDestination();gain.connect(dest);audio.srcObject=dest.stream;await audio.play();try{if('mediaSession'in navigator)navigator.mediaSession.metadata=new MediaMetadata({title:'Hen Listen',artist:'Encrypted live audio'})}catch(_){}}if(ctx.state!=='running')await ctx.resume()}
+function playPcm(buf){if(!ctx||!gain)return;const view=new DataView(buf);const n=Math.floor(view.byteLength/2);if(!n)return;const b=ctx.createBuffer(1,n,SAMPLE_RATE),ch=b.getChannelData(0);let peak=0;for(let i=0;i<n;i++){const v=view.getInt16(i*2,true)/32768;ch[i]=v;peak=Math.max(peak,Math.abs(v))}meter.style.width=Math.min(100,Math.round(peak*130))+'%';const src=ctx.createBufferSource();src.buffer=b;src.connect(gain);const now=ctx.currentTime;if(nextTime<now-.15||nextTime>now+1.2)nextTime=now+.08;const at=Math.max(nextTime,now+.025);src.start(at);nextTime=at+b.duration}
+async function decryptAndPlay(m){try{if(!m||!m.iv||!m.ct)return;const iv=b64ToBytes(m.iv),ct=b64ToBytes(m.ct);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);failures=0;setStatus('שידור חי',true);playPcm(plain)}catch(_){failures++;if(failures===3){setStatus('הקוד אינו מתאים לשידור',false);showError('לא ניתן לפענח את האודיו. בדוק את קוד הכניסה.')}}}
+function openSocket(channel){if(socket)try{socket.close()}catch(_){};socket=new WebSocket('wss://itty.ws/c/'+encodeURIComponent(channel)+'?as=iphone&echo=false');socket.onopen=()=>setStatus('מחובר — ממתין לשידור',false);socket.onmessage=e=>{try{const env=JSON.parse(e.data);const m=env&&env.message!==undefined?env.message:env;decryptAndPlay(m)}catch(_){}};socket.onclose=()=>{if(connected){setStatus('החיבור נותק — מתחבר מחדש…',false);setTimeout(()=>connected&&openSocket(channel),1800)}};socket.onerror=()=>setStatus('בעיית חיבור',false)}
+connectBtn.onclick=async()=>{clearError();const pwd=code.value;if(!room)return showError('הקישור אינו כולל מזהה חדר תקין.');if(!pwd)return showError('יש להזין קוד כניסה.');connectBtn.disabled=true;connectBtn.textContent='מתחבר…';try{await initAudio();key=await deriveKey(pwd);const h=await sha256(room);const channel='hen-audio-'+bytesToHex(h).slice(0,32);connected=true;code.value='';login.classList.add('hidden');player.classList.remove('hidden');openSocket(channel)}catch(e){showError('לא ניתן להתחבר.');console.error(e)}finally{connectBtn.disabled=false;connectBtn.textContent='התחבר והאזן'}};
+muteBtn.onclick=()=>{muted=!muted;if(gain)gain.gain.value=muted?0:1;muteBtn.textContent=muted?'בטל השתקה':'השתק'};
+disconnectBtn.onclick=()=>{connected=false;if(socket)try{socket.close()}catch(_){};socket=null;key=null;nextTime=0;meter.style.width='0%';player.classList.add('hidden');login.classList.remove('hidden');setStatus('מנותק',false)};
+})();
+</script>
+</body>
+</html>
