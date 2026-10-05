@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +14,8 @@ import {
 } from '../../lib/location';
 import { apiConfigured, sendEvent, sendSos } from '../../lib/api';
 import { registerForPush } from '../../lib/notifications';
+import { MotionPressable, PulseRing, Reveal } from '../../components/Motion';
+import { useFeedback } from '../../lib/feedback';
 
 export default function ProtectionScreen() {
   const [name, setName] = useState('Family member');
@@ -22,6 +24,7 @@ export default function ProtectionScreen() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [sosBusy, setSosBusy] = useState(false);
+  const { success, alert } = useFeedback();
 
   useEffect(() => {
     getProfile().then((p) => {
@@ -50,6 +53,7 @@ export default function ProtectionScreen() {
           setSharing(true);
           registerForPush().catch(() => {});
           await sendEvent('permission_changed', { location: 'background-enabled' }).catch(() => {});
+          success();
           setMessage('Location sharing is active. Android keeps a visible notification and iPhone can show its location indicator.');
         } else {
           setMessage(result.reason === 'background_denied'
@@ -73,6 +77,7 @@ export default function ProtectionScreen() {
     const result = await shareCurrentLocationOnce();
     if (result.ok) {
       await sendEvent('check_in', { label: 'I am safe' }).catch(() => {});
+      success();
       setMessage('Check-in sent with your current location.');
     } else {
       setMessage('Location permission is needed to include your current location in check-in.');
@@ -80,6 +85,7 @@ export default function ProtectionScreen() {
   }
 
   async function sos() {
+    alert();
     setSosBusy(true);
     setMessage('');
     try {
@@ -136,15 +142,19 @@ export default function ProtectionScreen() {
       disabled={busy}
     />
     <SecondaryButton label="Send check-in now" icon="checkmark-circle" onPress={checkIn} />
-    {Platform.OS !== 'web' ? <Pressable onPress={() => Linking.openSettings()} style={styles.settings}><Ionicons name="settings" size={15} color={colors.cyan}/><Text style={styles.settingsText}>Open device privacy settings</Text></Pressable> : null}
+    {Platform.OS !== 'web' ? <MotionPressable onPress={() => Linking.openSettings()} style={styles.settings}><Ionicons name="settings" size={15} color={colors.cyan}/><Text style={styles.settingsText}>Open device privacy settings</Text></MotionPressable> : null}
 
-    <Pressable onPress={sos} disabled={sosBusy} style={styles.sosOuter}>
-      <LinearGradient colors={['#FF5266', '#D01834']} style={styles.sos}>
-        <Ionicons name="alert" size={29} color="white" />
-        <Text style={styles.sosTitle}>{sosBusy ? 'SENDING…' : 'SOS'}</Text>
-        <Text style={styles.sosText}>Emergency alert</Text>
-      </LinearGradient>
-    </Pressable>
+    <Reveal delay={120}><View style={styles.sosStage}>
+      <PulseRing color="#FF445B" size={190} />
+      <PulseRing color="#FF8998" size={225} />
+      <MotionPressable onPress={sos} disabled={sosBusy} feedback={false} style={styles.sosOuter}>
+        <LinearGradient colors={['#FF5266', '#D01834']} style={styles.sos}>
+          <Ionicons name="alert" size={29} color="white" />
+          <Text style={styles.sosTitle}>{sosBusy ? 'SENDING…' : 'SOS'}</Text>
+          <Text style={styles.sosText}>Emergency alert</Text>
+        </LinearGradient>
+      </MotionPressable>
+    </View></Reveal>
 
     {message ? <View style={styles.message}><Ionicons name="information-circle" size={18} color={colors.cyan} /><Text style={styles.messageText}>{message}</Text></View> : null}
 
@@ -155,7 +165,7 @@ export default function ProtectionScreen() {
       <FeatureRow icon="key" title="You stay in control" text="Permissions can always be changed in your phone settings." color={colors.purple} />
     </Card>
 
-    <Pressable onPress={leaveDevice} style={styles.exit}><Text style={styles.exitText}>Leave this family on this device</Text></Pressable>
+    <MotionPressable onPress={leaveDevice} style={styles.exit}><Text style={styles.exitText}>Leave this family on this device</Text></MotionPressable>
   </Screen>;
 }
 
@@ -166,7 +176,8 @@ const styles = StyleSheet.create({
   statusText: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
   settings: { alignSelf: 'center', flexDirection: 'row', gap: 7, alignItems: 'center', padding: 8 },
   settingsText: { color: colors.cyan, fontSize: 10, fontWeight: '800' },
-  sosOuter: { alignSelf: 'center', padding: 10, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,68,91,.35)', marginVertical: 6 },
+  sosStage: { alignSelf:'center', width:240, height:240, alignItems:'center', justifyContent:'center', marginVertical:6 },
+  sosOuter: { alignSelf: 'center', padding: 10, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,68,91,.35)' },
   sos: { width: 160, height: 160, borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 6, borderColor: 'rgba(255,255,255,.09)' },
   sosTitle: { color: 'white', fontSize: 34, fontWeight: '900' },
   sosText: { color: '#FFD4DA', fontSize: 10, fontWeight: '700' },

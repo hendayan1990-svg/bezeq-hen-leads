@@ -1,10 +1,11 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, ViewStyle, StyleProp } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ViewStyle, StyleProp } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../lib/theme';
 import { useLocale } from '../lib/locale';
+import { MotionPressable } from './Motion';
 
 export function Screen({ children, scroll = true }: { children: React.ReactNode; scroll?: boolean }) {
   const { isRTL } = useLocale();
@@ -33,14 +34,14 @@ export function Card({ children, style }: { children: React.ReactNode; style?: S
 
 export function PrimaryButton({ label, onPress, icon, disabled }: { label: string; onPress: () => void; icon?: any; disabled?: boolean }) {
   const {isRTL}=useLocale();
-  return <Pressable disabled={disabled} onPress={onPress} style={{ opacity: disabled ? .45 : 1 }}>
+  return <MotionPressable disabled={disabled} onPress={onPress}>
     <LinearGradient colors={['#16B6FF', '#0874FF']} style={[styles.primary,isRTL&&{flexDirection:'row-reverse'}]}>{icon ? <Ionicons name={icon} size={20} color="white" /> : null}<Text style={styles.primaryText}>{label}</Text></LinearGradient>
-  </Pressable>;
+  </MotionPressable>;
 }
 
 export function SecondaryButton({ label, onPress, icon }: { label: string; onPress: () => void; icon?: any }) {
   const {isRTL}=useLocale();
-  return <Pressable onPress={onPress} style={[styles.secondary,isRTL&&{flexDirection:'row-reverse'}]}>{icon ? <Ionicons name={icon} size={19} color={colors.cyan} /> : null}<Text style={styles.secondaryText}>{label}</Text></Pressable>;
+  return <MotionPressable onPress={onPress} style={[styles.secondary,isRTL&&{flexDirection:'row-reverse'}]}>{icon ? <Ionicons name={icon} size={19} color={colors.cyan} /> : null}<Text style={styles.secondaryText}>{label}</Text></MotionPressable>;
 }
 
 export function Field({ label, value, onChangeText, placeholder, secureTextEntry, keyboardType = 'default', autoCapitalize = 'none' }: any) {
@@ -55,7 +56,7 @@ export function FeatureRow({ icon, title, text, color = colors.cyan }: { icon: a
 
 export function BackButton({ onPress }: { onPress: () => void }) {
   const {isRTL}=useLocale();
-  return <Pressable onPress={onPress} style={[styles.back,isRTL&&{alignSelf:'flex-end'}]}><Ionicons name={isRTL?'chevron-forward':'chevron-back'} size={22} color="white" /></Pressable>;
+  return <MotionPressable onPress={onPress} style={[styles.back,isRTL&&{alignSelf:'flex-end'}]}><Ionicons name={isRTL?'chevron-forward':'chevron-back'} size={22} color="white" /></MotionPressable>;
 }
 
 export function ErrorBox({ text }: { text?: string }) {
@@ -65,8 +66,8 @@ export function ErrorBox({ text }: { text?: string }) {
 }
 
 const styles = StyleSheet.create({
-  app: { flex: 1 }, safe: { flex: 1 }, body: { flexGrow: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 22, paddingTop: 18, paddingBottom: 44, gap: 16 },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }, logoIcon: { width: 50, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: colors.blue, shadowOpacity: .45, shadowRadius: 18, shadowOffset: { width: 0, height: 6 } },
+  app: { flex: 1 }, safe: { flex: 1 }, body: { flexGrow: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 22, paddingTop: 18, paddingBottom: 44, gap: 16, ...(Platform.OS === 'web' ? ({ boxSizing: 'border-box' } as any) : {}) },
+  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10, flexShrink: 1 }, logoIcon: { width: 50, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: colors.blue, shadowOpacity: .45, shadowRadius: 18, shadowOffset: { width: 0, height: 6 } },
   logoText: { color: 'white', fontSize: 22, fontWeight: '900' }, logoSub: { color: colors.muted, fontSize: 10, marginTop: 2 }, kicker: { color: colors.green, fontWeight: '900', fontSize: 11, letterSpacing: 1.1, textTransform: 'uppercase' },
   title: { color: colors.text, fontSize: 31, lineHeight: 37, fontWeight: '900', letterSpacing: -.5 }, subtitle: { color: colors.muted, fontSize: 14, lineHeight: 21 }, rtlText:{textAlign:'right',writingDirection:'rtl'},
   card: { backgroundColor: 'rgba(12,27,46,.88)', borderWidth: 1, borderColor: 'rgba(76,142,190,.22)', borderRadius: 22, padding: 17, gap: 12 },

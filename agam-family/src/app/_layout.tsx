@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { configureNotifications, observeNotificationNavigation } from '../lib/notifications';
 import { LocaleProvider } from '../lib/locale';
+import { FeedbackProvider } from '../lib/feedback';
 
 export default function RootLayout() {
   useEffect(() => {
@@ -17,10 +18,12 @@ export default function RootLayout() {
 
   return (
     <LocaleProvider>
-      <SafeAreaProvider>
-        <StatusBar style="light" />
-        <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: '#06101D' } }} />
-      </SafeAreaProvider>
+      <FeedbackProvider>
+        <SafeAreaProvider>
+          <StatusBar style="light" />
+          <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: '#06101D' } }} />
+        </SafeAreaProvider>
+      </FeedbackProvider>
     </LocaleProvider>
   );
 }
