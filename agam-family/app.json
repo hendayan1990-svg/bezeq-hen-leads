@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "AGAM Family",
+    "slug": "agam-family",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "agamfamily",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.agamfamily.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "AGAM Family uses location to show family members on the shared family safety map.",
+        "NSMicrophoneUsageDescription": "AGAM Family uses the microphone only during visible Safety Audio sessions.",
+        "UIBackgroundModes": ["location"]
+      }
+    },
+    "android": {
+      "package": "com.agamfamily.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#06101D",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "RECORD_AUDIO", "POST_NOTIFICATIONS"],
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      ["expo-location", {"locationAlwaysAndWhenInUsePermission": "Allow AGAM Family to use your location for family safety features."}]
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
