@@ -14,7 +14,7 @@ export default function ParentLoginScreen() {
       if (!apiConfigured()) { await saveSession('preview-parent',{kind:'parent',displayName:'Preview Parent',familyName:'AGAM Preview Family'}); router.replace('/demo'); return; }
       const result:any=await loginParent(email.trim(),password);
       await saveSession(result.token,{kind:'parent',displayName:result.user?.displayName,familyName:result.family?.name,familyId:result.family?.id,memberId:result.member?.id});
-      registerForPush().catch(()=>{}); router.replace('/demo');
+      registerForPush().catch(()=>{}); router.replace('/dashboard');
     } catch(e:any){ setError(e?.code==='INVALID_CREDENTIALS'?'Email or password is incorrect.':'Could not sign in right now.'); }
     finally{setBusy(false)}
   }

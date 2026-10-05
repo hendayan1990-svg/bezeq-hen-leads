@@ -22,7 +22,7 @@ export default function PairScreen(){
     </Card>
     {error?<Text style={styles.error}>{error}</Text>:null}
     <PrimaryButton label={busy?'…':t('generateCode')} icon="refresh" onPress={generate} disabled={busy}/>
-    <SecondaryButton label={t('openDashboard')} icon="map" onPress={()=>router.replace('/demo')}/>
+    <SecondaryButton label={t('openDashboard')} icon="map" onPress={()=>router.replace(apiConfigured()?'/dashboard':'/demo')}/>
     <Pressable onPress={()=>router.push('/family/join')} style={styles.test}><Text style={styles.testText}>{t('testJoin')}</Text></Pressable>
   </Screen>;
 }
