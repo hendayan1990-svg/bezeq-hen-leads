@@ -118,6 +118,13 @@ const server=http.createServer(async(req,res)=>{
  const path=url.pathname;
  try{
   if(path.startsWith('/api/'))return await api(req,res,path,url.searchParams);
+  if(path==='/download/prolink-wifi-pro.apk'&&req.method==='GET'){
+    const apk=await readFile(new URL('./public/ProLink_WiFi_PRO_v1.3.apk',import.meta.url));
+    res.writeHead(200,{'content-type':'application/vnd.android.package-archive',
+      'content-length':apk.length,'content-disposition':'attachment; filename="ProLink_WiFi_PRO_v1.3.apk"',
+      'cache-control':'public,max-age=600','x-content-type-options':'nosniff'});
+    return res.end(apk);
+  }
   if((path==='/'||path==='/tech')&&req.method==='GET'){
     res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','content-security-policy':"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"});return res.end(await html('tech.html'));
   }
