@@ -64,6 +64,12 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
   private ProgressBar signalMeter;
   private volatile String captureRoom="";
   private volatile int routerRssi=0;
+  private boolean selfScan=false;
+  private int claimedArea=0,floorCount=1,currentFloor=1;
+  private volatile String currentRoom="סלון";
+  private volatile long lastAutoAt=0;
+  private Pose lastAutoPose=null;
+  private Button roomButton,floorButton;
   private final Handler handler=new Handler(Looper.getMainLooper());
   private volatile boolean markRouter=false, capture=false;
   private volatile String sceneStatus="מתחבר למנוע ARCore";
@@ -115,10 +121,18 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
     if(overlay!=null&&overlay.getParent()!=null)AppLanguage.translateTree(ARSurveyActivity.this,(View)overlay.getParent());
     handler.postDelayed(this,900);
   }};
-  private static class Measure{Anchor anchor;int rssi;float distance;String room;Measure(Anchor a,int r,float d,String room){anchor=a;rssi=r;distance=d;this.room=room;}}
+  private static class Measure{
+    Anchor anchor;int rssi,floor;float distance;String room;
+    Measure(Anchor a,int r,float d,String room,int floor){
+      anchor=a;rssi=r;distance=d;this.room=room;this.floor=floor;
+    }
+  }
   private int dp(int n){return (int)(getResources().getDisplayMetrics().density*n+.5f);}
   @Override public void onCreate(Bundle b){
     super.onCreate(b);
+    selfScan=getIntent().getBooleanExtra("self_scan",false);
+    claimedArea=Math.max(0,getIntent().getIntExtra("claimed_area_sqm",0));
+    floorCount=Math.max(1,Math.min(4,getIntent().getIntExtra("floor_count",1)));
     getWindow().setStatusBarColor(Color.rgb(13,30,57));
     if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED){
       requestPermissions(new String[]{Manifest.permission.CAMERA},18);return;
@@ -144,8 +158,10 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
     top.setBackground(color(0xD90D1E39,16));
     FrameLayout.LayoutParams tl=new FrameLayout.LayoutParams(-1,-2,Gravity.TOP);tl.setMargins(dp(9),dp(12),dp(9),0);screen.addView(top,tl);
     TextView title=new TextView(this);title.setText("Bezeq WiFi 360  /  AR");
+    if(selfScan)title.setText("Bezeq WiFi 360  /  סריקה עצמית");
     title.setTextSize(20);title.setTextColor(Color.WHITE);title.setTypeface(null,1);title.setGravity(Gravity.RIGHT);top.addView(title);
-    info=new TextView(this);info.setText("מציאות רבודה • עוקב אחר תנועת הטכנאי");
+    info=new TextView(this);
+    info.setText(selfScan?"שלב 1: סמן את הנתב • שלב 2: הסתובב עם הטלפון":"מציאות רבודה • עוקב אחר תנועת הטכנאי");
     info.setTextSize(12);info.setTextColor(0xFFADD0EC);info.setGravity(Gravity.RIGHT);top.addView(info);
     customerQuality=new TextView(this);customerQuality.setText("מתחיל לבדוק...");
     customerQuality.setTextSize(27);customerQuality.setTypeface(null,1);customerQuality.setGravity(Gravity.RIGHT);
@@ -165,28 +181,80 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
     stateLp.setMargins(0,dp(7),0,dp(6));top.addView(needExtender,stateLp);
     pointCounter=new TextView(this);pointCounter.setText("נקודות מדודות: 0");
     pointCounter.setTextSize(12);pointCounter.setTextColor(0xFFB3D9F0);pointCounter.setGravity(Gravity.RIGHT);top.addView(pointCounter);
-    summary=new TextView(this);summary.setText("1. סמן נתב   2. סרוק חדרים   3. סיים לקבלת המלצה");
+    summary=new TextView(this);
+    summary.setText(selfScan?"סריקה עצמית • המדידות נשמרות לבד תוך כדי הליכה":"1. סמן נתב   2. סרוק חדרים   3. סיים לקבלת המלצה");
     summary.setTextColor(Color.WHITE);summary.setTextSize(12);summary.setGravity(Gravity.RIGHT);top.addView(summary);
     LinearLayout controls=new LinearLayout(this);controls.setOrientation(LinearLayout.VERTICAL);
     controls.setPadding(dp(9),dp(10),dp(9),dp(10));controls.setBackground(color(0xEF10233B,18));
     FrameLayout.LayoutParams bl=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);
     bl.setMargins(dp(9),0,dp(9),dp(11));screen.addView(controls,bl);
-    Button finishButton=btn("סיום סריקה  ·  סיכום ציוד ומיקומים",0xFF059F91);
+    Button finishButton=btn(selfScan?"סיים סריקת הבית • קבל דוח והמלצה":"סיום סריקה  ·  סיכום ציוד ומיקומים",0xFF059F91);
     controls.addView(finishButton,new LinearLayout.LayoutParams(-1,dp(54)));
     finishButton.setOnClickListener(v->showReport());
     LinearLayout bottom=new LinearLayout(this);bottom.setOrientation(LinearLayout.HORIZONTAL);
     bottom.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
     LinearLayout.LayoutParams bottomP=new LinearLayout.LayoutParams(-1,dp(51));bottomP.topMargin=dp(7);controls.addView(bottom,bottomP);
     Button routerButton=btn("◉ סמן נתב",0xFF155FD2);bottom.addView(routerButton,new LinearLayout.LayoutParams(0,-1,1));
-    Button sampleButton=btn("+ מדוד חדר",0xFF087EAD);
+    Button sampleButton=btn(selfScan?"🏠  שנה חדר":"+ מדוד חדר",0xFF087EAD);
     LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(0,-1,1);sp.setMargins(dp(6),0,dp(6),0);bottom.addView(sampleButton,sp);
     Button exit=btn("חזרה",0xFF354761);bottom.addView(exit,new LinearLayout.LayoutParams(0,-1,.60f));
     routerButton.setOnClickListener(v->{markRouter=true;sceneStatus="מסמן עוגן נתב במרכז המסך...";});
-    sampleButton.setOnClickListener(v->promptMeasure());
+    roomButton=sampleButton;
+    sampleButton.setOnClickListener(v->{
+      if(selfScan)chooseRoom();else promptMeasure();
+    });
+    if(selfScan&&floorCount>1){
+      floorButton=btn("קומה 1 / "+floorCount,0xFF185C93);
+      controls.addView(floorButton,new LinearLayout.LayoutParams(-1,dp(44)));
+      floorButton.setOnClickListener(v->{
+        currentFloor=currentFloor>=floorCount?1:currentFloor+1;
+        currentRoom="אזור ראשי";
+        lastAutoPose=null;lastAutoAt=0;
+        floorButton.setText("קומה "+currentFloor+" / "+floorCount);
+        Toast.makeText(this,"קומה "+currentFloor+" — המדידות יישמרו לקומה זו",Toast.LENGTH_LONG).show();
+      });
+    }
     exit.setOnClickListener(v->finish());
   }
   private Button btn(String value,int c){
     Button b=new Button(this);b.setText(value);b.setAllCaps(false);b.setTextSize(13);b.setTextColor(Color.WHITE);b.setBackground(color(c,11));return b;
+  }
+  private void chooseRoom(){
+    EditText name=new EditText(this);name.setSingleLine(true);
+    name.setText(currentRoom);name.setSelectAllOnFocus(true);
+    name.setHint("לדוגמה: סלון / חדר שינה / מסדרון");
+    LinearLayout parent=new LinearLayout(this);
+    parent.setPadding(dp(16),0,dp(16),0);
+    parent.addView(name,new LinearLayout.LayoutParams(-1,-2));
+    new AlertDialog.Builder(this).setTitle("איזה חדר אתה סורק כעת?")
+      .setMessage("המדידה תימשך אוטומטית. בחר שם חדר חדש במעבר בין חדרים.")
+      .setView(parent)
+      .setPositiveButton("המשך סריקה",(d,w)->{
+        String t=name.getText().toString().trim();
+        if(!t.isEmpty())currentRoom=t;
+        lastAutoPose=null;lastAutoAt=0;
+      })
+      .setNegativeButton("ביטול",null).show();
+  }
+  private void autoCapture(Camera camera){
+    if(!selfScan||router==null||camera.getTrackingState()!=TrackingState.TRACKING)return;
+    if(router.getTrackingState()!=TrackingState.TRACKING)return;
+    if(marks.size()>=130)return;
+    Pose pose=camera.getPose();
+    long now=android.os.SystemClock.elapsedRealtime();
+    if(now-lastAutoAt<4000)return;
+    if(lastAutoPose!=null&&dist(pose,lastAutoPose)<1.65f)return;
+    int r=readRssi();
+    if(!SignalQuality.valid(r))return;
+    Anchor anchor=ar.createAnchor(pose);
+    float d=dist(pose,router.getPose());
+    String label=currentRoom;
+    int index=marks.size()+1;
+    marks.add(new Measure(anchor,r,d,label,currentFloor));
+    saveARPoint(r,d,index,label);
+    lastAutoAt=now;lastAutoPose=pose;
+    if(index%3==0)handler.post(()->summary.setText("נסרקו "+index+" נקודות • "+label+
+        " • קומה "+currentFloor+" • המשך ללכת לחדר הבא"));
   }
   private void promptMeasure(){
     if(router==null){Toast.makeText(this,"סמן תחילה את מיקום הנתב",Toast.LENGTH_LONG).show();return;}
@@ -203,7 +271,19 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
         capture=true;sceneStatus="מודד קליטה בחדר: "+captureRoom;
       }).setNegativeButton("ביטול",null).show();
   }
+  private ArrayList<Measure> samplesFromMeasurements(){
+    synchronized(sessionLock){return new ArrayList<>(marks);}
+  }
   private String reportText(){
+    if(selfScan){
+      ArrayList<HomeScanAdvisor.Sample> samples=new ArrayList<>();
+      for(Measure m:samplesFromMeasurements()){
+        Pose pos=m.anchor.getPose();
+        samples.add(new HomeScanAdvisor.Sample(m.room,m.floor,m.rssi,
+          pos.tx(),pos.ty(),pos.tz(),m.distance));
+      }
+      return HomeScanAdvisor.evaluate(samples,claimedArea,floorCount).text;
+    }
     ArrayList<Measure> samples;
     synchronized(sessionLock){samples=new ArrayList<>(marks);}
     StringBuilder b=new StringBuilder("Bezeq WiFi 360 | סיכום סריקת כיסוי\n");
@@ -253,11 +333,14 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
   }
   private void showReport(){
     String report=AppLanguage.tr(this,reportText());
+    if(selfScan)getSharedPreferences("home_scan",MODE_PRIVATE).edit()
+      .putString("last_report",report).putLong("report_timestamp",System.currentTimeMillis()).apply();
     TextView content=new TextView(this);content.setText(report);content.setTextSize(16);
     content.setTextColor(0xFFEEF7FF);content.setPadding(dp(18),dp(18),dp(18),dp(18));
     content.setBackgroundColor(0xFF102942);content.setTextDirection(View.TEXT_DIRECTION_RTL);
     android.widget.ScrollView scroll=new android.widget.ScrollView(this);scroll.addView(content);
-    new AlertDialog.Builder(this).setTitle("סיכום סריקה • הצעת ציוד ללקוח")
+    new AlertDialog.Builder(this).setTitle(selfScan?
+        "דוח כיסוי הבית והמלצות ציוד":"סיכום סריקה • הצעת ציוד ללקוח")
       .setView(scroll)
       .setPositiveButton("שתף סיכום",(d,w)->{
         Intent send=new Intent(Intent.ACTION_SEND);send.setType("text/plain");
@@ -346,7 +429,10 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
           markRouter=false;
           Anchor a=anchorAtCenter(frame,camera);
           if(router!=null)router.detach();router=a;routerRssi=readRssi();
-          handler.post(()->summary.setText("מיקום הנתב סומן. עבור לחדרים ושמור מדידות."));
+          lastAutoPose=null;lastAutoAt=0;
+          handler.post(()->summary.setText(selfScan?
+            "הנתב סומן. התרחק והסתובב בבית • המדידות נאספות אוטומטית.":
+            "מיקום הנתב סומן. עבור לחדרים ושמור מדידות."));
         }
         if(capture){
           capture=false;
@@ -356,13 +442,14 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
             int r=readRssi();float distance=dist(a.getPose(),router.getPose());
             int index=marks.size()+1;
             String room=captureRoom.isEmpty()?"נקודה "+index:captureRoom;
-            marks.add(new Measure(a,r,distance,room));
+            marks.add(new Measure(a,r,distance,room,currentFloor));
             saveARPoint(r,distance,index,room);
             final String msg=String.format(Locale.US,"נקודה %d • קליטה %s • מרחק משוער %.1f מ׳",marks.size(),SignalQuality.name(r),distance);
             final String recommendation=arRecommendation();
             handler.post(()->summary.setText(msg+"\n"+recommendation));
           }
         }
+        if(selfScan)autoCapture(camera);
         camera.getProjectionMatrix(projection,0,.1f,100f);camera.getViewMatrix(view,0);
         ArrayList<Marker> visible=new ArrayList<>();
         if(router!=null&&router.getTrackingState()==TrackingState.TRACKING){Marker m=screenPoint(router.getPose(),-999,"נתב",false);if(m!=null)visible.add(m);}
@@ -395,16 +482,19 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
       JSONArray items=new JSONArray(prefs.getString("points","[]"));
       JSONObject p=new JSONObject();
       p.put("kind","signal");
+      if(selfScan)p.put("self_scan",true);
+      p.put("floor",currentFloor);
+      p.put("claimed_area_sqm",claimedArea);
       p.put("room",room);
       p.put("rssi",rssi);p.put("distance_m",Math.round(distance*10f)/10.0);
       p.put("timestamp",System.currentTimeMillis());
       p.put("after",false);p.put("wired",false);
-      p.put("cloud_session",CloudSync.session(this));
+      p.put("cloud_session",selfScan?"":CloudSync.session(this));
       p.put("cloud_id",java.util.UUID.randomUUID().toString());
       p.put("cloud_synced",false);
       items.put(p);
       prefs.edit().putString("points",items.toString()).apply();
-      if(CloudSync.connected(this)){
+      if(!selfScan&&CloudSync.connected(this)){
         new Thread(()->{try{CloudSync.sendPending(this);}catch(Exception ignored){}},
           "ar-cloud-sync").start();
       }

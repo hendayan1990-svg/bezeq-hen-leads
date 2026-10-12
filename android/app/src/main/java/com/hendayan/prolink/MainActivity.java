@@ -28,6 +28,9 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ImageView;
+import android.widget.Spinner;
+import android.widget.ArrayAdapter;
+import android.text.InputType;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.text.SimpleDateFormat;
@@ -132,7 +135,16 @@ public final class MainActivity extends Activity {
     Button checkUpdates=button("↻ בדוק עדכונים לאפליקציה",CYAN);
     head.addView(checkUpdates,new LinearLayout.LayoutParams(-1,dp(43)));
     checkUpdates.setOnClickListener(v->UpdateManager.check(this,true));
-    gap(head,8);
+    gap(head,10);
+    Button homeScan=button("🏠  סריקת הבית בעצמך • ללא טכנאי",0xFF0E9E93);
+    homeScan.setTextSize(17);
+    head.addView(homeScan,new LinearLayout.LayoutParams(-1,dp(57)));
+    homeScan.setOnClickListener(v->startSelfScan());
+    gap(head,7);
+    Button lastReport=button("דוח סריקת הבית האחרון",NAVY);
+    head.addView(lastReport,new LinearLayout.LayoutParams(-1,dp(42)));
+    lastReport.setOnClickListener(v->showLatestHomeReport());
+    gap(head,9);
     LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);nav.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
     pad(nav,7);root.addView(nav);
     String[] labels={"מהירות","מדידות","מיקום AR","שיתוף"};
@@ -208,9 +220,66 @@ public final class MainActivity extends Activity {
     adviceText=text("למיקום מקצועי: בדוק תחילה ליד הנתב, אחר כך במסדרון, ולבסוף בחדר הרחוק.",15,Color.WHITE,false);c.addView(adviceText);
     gap(c,12);Button launch=button("פתח סיור מציאות רבודה",BLUE);c.addView(launch);
     launch.setOnClickListener(v->startActivity(new Intent(this,ARSurveyActivity.class)));
+    gap(c,10);
+    Button scanForCustomer=button("סריקת בית אוטומטית ללקוח",0xFF0E9E93);
+    c.addView(scanForCustomer);
+    scanForCustomer.setOnClickListener(v->startSelfScan());
     LinearLayout caution=card(guide);
     caution.addView(text("הסימון המרחבי הוא הערכה מבוססת מצלמה ומעקב ARCore, ולא מדידת RF תלת־ממדית. נקודת ההתקנה נקבעת לפי מדידות בפועל וכיול.",13,SUB,false));
     recommend();
+  }
+  private void showLatestHomeReport(){
+    String report=getSharedPreferences("home_scan",MODE_PRIVATE).getString("last_report","");
+    if(report.isEmpty()){
+      new android.app.AlertDialog.Builder(this).setTitle("עדיין אין דוח סריקה")
+        .setMessage("בצע סריקה עצמית ולחץ על סיום סריקה כדי ליצור דוח.")
+        .setPositiveButton("סגור",null).show();
+      return;
+    }
+    TextView txt=text(report,15,Color.WHITE,false);pad(txt,18);
+    ScrollView sc=new ScrollView(this);sc.addView(txt);
+    new android.app.AlertDialog.Builder(this,android.app.AlertDialog.THEME_DEVICE_DEFAULT_DARK)
+      .setTitle("דוח סריקת הבית האחרון")
+      .setView(sc)
+      .setPositiveButton("שתף דוח",(d,w)->{
+        Intent share=new Intent(Intent.ACTION_SEND);
+        share.setType("text/plain");share.putExtra(Intent.EXTRA_TEXT,report);
+        startActivity(Intent.createChooser(share,"שליחת דוח כיסוי"));
+      }).setNegativeButton("סגור",null).show();
+  }
+  private void startSelfScan(){
+    LinearLayout layout=column();
+    layout.setPadding(dp(22),dp(10),dp(22),0);
+    TextView description=text("אפשר לסרוק את הבית בלי טכנאי. ציין גודל משוער וקומות, "
+        +"התחבר ל-Wi-Fi, ואז סמן את הנתב והסתובב בבית. המצלמה אינה מודדת מ״ר במדויק.",14,Color.WHITE,false);
+    layout.addView(description);
+    gap(layout,12);
+    TextView sqmTitle=text("שטח הבית במ״ר (משוער, לא חובה)",14,Color.WHITE,true);
+    layout.addView(sqmTitle);
+    EditText sqm=new EditText(this);
+    sqm.setSingleLine(true);sqm.setTextColor(Color.WHITE);sqm.setHint("לדוגמה: 100");
+    sqm.setHintTextColor(SUB);sqm.setInputType(InputType.TYPE_CLASS_NUMBER);
+    sqm.setBackground(bg(Color.rgb(16,40,67),12));pad(sqm,12);
+    layout.addView(sqm,new LinearLayout.LayoutParams(-1,dp(51)));
+    gap(layout,10);
+    layout.addView(text("מספר קומות לסריקה",14,Color.WHITE,true));
+    Spinner floors=new Spinner(this);
+    String[] choices={"קומה אחת","2 קומות","3 קומות","4 קומות"};
+    ArrayAdapter<String> adapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,choices);
+    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    floors.setAdapter(adapter);layout.addView(floors);
+    new android.app.AlertDialog.Builder(this,android.app.AlertDialog.THEME_DEVICE_DEFAULT_DARK)
+      .setTitle("סריקת Wi-Fi עצמית לבית")
+      .setView(layout)
+      .setPositiveButton("התחל לסרוק",(dialog,which)->{
+        int area=0;
+        try{area=Math.max(0,Math.min(2000,Integer.parseInt(sqm.getText().toString().trim())));}
+        catch(Exception ignored){}
+        Intent i=new Intent(this,ARSurveyActivity.class);
+        i.putExtra("self_scan",true);i.putExtra("claimed_area_sqm",area);
+        i.putExtra("floor_count",floors.getSelectedItemPosition()+1);
+        startActivity(i);
+      }).setNegativeButton("ביטול",null).show();
   }
   private void showPane(int which){
     main.setVisibility(which==0?View.VISIBLE:View.GONE);

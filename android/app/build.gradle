@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 android {
   namespace 'com.hendayan.prolink'
   compileSdk 36
-  defaultConfig { applicationId 'com.hendayan.prolink'; minSdk 26; targetSdk 35; versionCode 6; versionName '1.6.0-bezeq-wifi360' }
+  defaultConfig { applicationId 'com.hendayan.prolink'; minSdk 26; targetSdk 35; versionCode 7; versionName '1.7.0-home-scan' }
   compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
   signingConfigs {
     release {
