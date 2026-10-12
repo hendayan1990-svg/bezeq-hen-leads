@@ -58,7 +58,8 @@ function throttle(req,limit=30,period=60000){
 const publicSession=s=>({id:s.id,technician:s.technician,customerLabel:s.customerLabel,
  status:s.status,createdAt:s.createdAt,updatedAt:s.updatedAt,points:s.points.map(({id,room,stage,transport,download,upload,ping,jitter,rssi,quality,timestamp,kind,distance_m})=>({id,room,stage,transport,download,upload,ping,jitter,rssi,quality,timestamp,kind,distance_m}))});
 const api=async(req,res,path,query)=>{
- if(!throttle(req))return err(res,429,'Too many requests');
+ const quota=path.startsWith('/api/public/')?240:req.method==='GET'?120:50;
+ if(!throttle(req,quota))return err(res,429,'Too many requests');
  if(path==='/api/health'&&req.method==='GET')return reply(res,200,{ok:true,service:'ProLink WiFi PRO',store:redis?.isReady?'redis':redisStatus,now:Date.now()});
  if(path==='/api/sessions/recover'&&req.method==='POST'){
    if(!auth(req))return err(res,401,'Unauthorized technician');
