@@ -1,0 +1,27 @@
+apply plugin: 'com.android.application'
+android {
+  namespace 'com.hendayan.prolink'
+  compileSdk 36
+  defaultConfig { applicationId 'com.hendayan.prolink'; minSdk 26; targetSdk 35; versionCode 5; versionName '1.5.0-ar-pro' }
+  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+  signingConfigs {
+    release {
+      storeFile file(System.getenv('PROLINK_KEYSTORE_PATH') ?: 'D:/ProLink_WiFi_PRO/signing/release.keystore')
+      storePassword System.getenv('PROLINK_SIGN_PASS') ?: 'not-configured'
+      keyAlias 'prolink'
+      keyPassword System.getenv('PROLINK_SIGN_PASS') ?: 'not-configured'
+    }
+  }
+  buildTypes {
+    release {
+      minifyEnabled false
+      shrinkResources false
+      debuggable false
+      applicationIdSuffix '.work'
+      signingConfig signingConfigs.release
+    }
+  }
+}
+dependencies {
+  implementation 'com.google.ar:core:1.53.0'
+}
