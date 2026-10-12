@@ -47,7 +47,7 @@ function auth(req){
  return eq(token,MASTER);
 }
 function limited(s,max=120){return String(s??'').slice(0,max).trim()}
-function num(v,min,max){const n=Number(v);return Number.isFinite(n)?Math.max(min,Math.min(n,max)):null}
+function num(v,min,max){if(v===null||v===undefined||v==='')return null;const n=Number(v);return Number.isFinite(n)?Math.max(min,Math.min(n,max)):null}
 const rate=new Map();
 function throttle(req,limit=30,period=60000){
  const ip=(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').toString().split(',')[0];
@@ -56,7 +56,7 @@ function throttle(req,limit=30,period=60000){
  return n<=limit;
 }
 const publicSession=s=>({id:s.id,technician:s.technician,customerLabel:s.customerLabel,
- status:s.status,createdAt:s.createdAt,updatedAt:s.updatedAt,points:s.points.map(({id,room,stage,transport,download,upload,ping,jitter,rssi,quality,timestamp})=>({id,room,stage,transport,download,upload,ping,jitter,rssi,quality,timestamp}))});
+ status:s.status,createdAt:s.createdAt,updatedAt:s.updatedAt,points:s.points.map(({id,room,stage,transport,download,upload,ping,jitter,rssi,quality,timestamp,kind,distance_m})=>({id,room,stage,transport,download,upload,ping,jitter,rssi,quality,timestamp,kind,distance_m}))});
 const api=async(req,res,path,query)=>{
  if(!throttle(req))return err(res,429,'Too many requests');
  if(path==='/api/health'&&req.method==='GET')return reply(res,200,{ok:true,service:'ProLink WiFi PRO',store:redis?.isReady?'redis':redisStatus,now:Date.now()});
@@ -79,7 +79,7 @@ const api=async(req,res,path,query)=>{
    const s={id,viewerHash:hash(viewToken),technician:limited(b.technician,80),customerLabel:limited(b.customerLabel||'לקוח',60),
      status:'active',createdAt:new Date().toISOString(),updatedAt:'',points:[]};
    await save(s);
-   return reply(res,201,{ok:true,session:publicSession(s),viewerUrl:'https://'+(req.headers.host||'prolink-wifi-pro.onrender.com')+'/view/'+id+'?token='+viewToken,viewerToken:viewToken});
+   return reply(res,201,{ok:true,session:publicSession(s),viewerUrl:'https://prolink-wifi-pro-live.onrender.com/view/'+id+'?token='+viewToken,viewerToken:viewToken});
  }
  if(path==='/api/sessions'&&req.method==='GET'){
    if(!auth(req))return err(res,401,'Unauthorized technician');
@@ -100,11 +100,12 @@ const api=async(req,res,path,query)=>{
      if(s.status==='completed')return err(res,409,'Session completed');
      const b=await body(req);
      const p={id:limited(b.id,80)||randomUUID(),room:limited(b.room,80),stage:b.stage==='after'?'after':'before',
+       kind:b.kind==='signal'?'signal':'speed',distance_m:num(b.distance_m,0,500),
        transport:b.transport==='Ethernet'?'Ethernet':'Wi-Fi',
        download:num(b.download,0,10000),upload:num(b.upload,0,10000),ping:num(b.ping,0,10000),
        jitter:num(b.jitter,0,10000),rssi:num(b.rssi,-110,0),
        quality:limited(b.quality,32),timestamp:limited(b.timestamp,40)||new Date().toISOString()};
-     if(!p.room||p.download===null||p.upload===null)return err(res,400,'Room, download and upload are required');
+     if(!p.room||(p.kind==='speed'&&(p.download===null||p.upload===null)))return err(res,400,'Room, download and upload are required for speed measurements');
      if(s.points.length>=200)return err(res,409,'Maximum 200 points');
      if(!s.points.some(x=>x.id===p.id))s.points.push(p);
      await save(s);return reply(res,201,{ok:true,count:s.points.length});

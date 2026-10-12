@@ -33,7 +33,7 @@ async function update(){
  const row=document.createElement('div');row.className='point';
  const dot=document.createElement('span');dot.className='dot '+state(p.rssi);row.append(dot);
  const text=document.createElement('div');const name=document.createElement('strong');name.textContent=p.room+' • '+(p.stage==='after'?'אחרי התקנה':'לפני התקנה');text.append(name);
- const desc=document.createElement('div');desc.className='tiny';desc.textContent='הורדה '+(p.download??'—')+' Mbps • העלאה '+(p.upload??'—')+' Mbps • קליטה '+quality(p.rssi);text.append(desc);row.append(text);holder.append(row);
+ const desc=document.createElement('div');desc.className='tiny';desc.textContent=p.kind==='signal'?'סריקת AR • קליטה '+quality(p.rssi)+' • מרחק משוער '+(p.distance_m??'—')+' מ׳ (ללא בדיקת מהירות)':'הורדה '+(p.download??'—')+' Mbps • העלאה '+(p.upload??'—')+' Mbps • קליטה '+quality(p.rssi);text.append(desc);row.append(text);holder.append(row);
  });
  $('recommendation').textContent=recommends(points);
  }catch(e){$('updated').textContent=e.message;$('sessionStatus').textContent='לא מחובר';$('sessionStatus').className='status bad'}
