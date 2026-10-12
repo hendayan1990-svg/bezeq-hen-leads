@@ -60,6 +60,19 @@ const publicSession=s=>({id:s.id,technician:s.technician,customerLabel:s.custome
 const api=async(req,res,path,query)=>{
  if(!throttle(req))return err(res,429,'Too many requests');
  if(path==='/api/health'&&req.method==='GET')return reply(res,200,{ok:true,service:'ProLink WiFi PRO',store:redis?.isReady?'redis':redisStatus,now:Date.now()});
+ if(path==='/api/sessions/recover'&&req.method==='POST'){
+   if(!auth(req))return err(res,401,'Unauthorized technician');
+   const b=await body(req),id=limited(b.id,50),token=limited(b.viewerToken,200);
+   if(!/^[0-9a-f-]{36}$/.test(id)||token.length<20)return err(res,400,'Invalid recovery request');
+   const existing=await load(id);
+   if(existing){
+     if(!eq(hash(token),existing.viewerHash))return err(res,403,'Viewer token mismatch');
+     return reply(res,200,{ok:true,recovered:false,session:publicSession(existing)});
+   }
+   const s={id,viewerHash:hash(token),technician:limited(b.technician,80),customerLabel:limited(b.customerLabel||'לקוח',60),
+     status:'active',createdAt:new Date().toISOString(),updatedAt:'',points:[]};
+   await save(s);return reply(res,201,{ok:true,recovered:true,session:publicSession(s)});
+ }
  if(path==='/api/sessions'&&req.method==='POST'){
    if(!auth(req))return err(res,401,'Unauthorized technician');
    const b=await body(req),id=randomUUID(),viewToken=rand();
