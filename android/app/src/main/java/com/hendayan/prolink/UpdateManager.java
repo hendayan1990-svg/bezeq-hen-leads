@@ -45,7 +45,7 @@ public final class UpdateManager {
         ui.post(()->{
           if(activity.isFinishing()||activity.isDestroyed())return;
           if(newer){
-            new AlertDialog.Builder(activity).setTitle("עדכון חדש ל־ProLink WiFi PRO")
+            new AlertDialog.Builder(activity).setTitle("עדכון חדש ל־Bezeq WiFi 360")
               .setMessage("זמינה גרסה "+name+".\nניתן להתקין ללא חיבור למחשב. אנדרואיד יבקש אישור להתקנה.")
               .setPositiveButton("הורד והתקן",(d,w)->activity.startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url))))
               .setNegativeButton("מאוחר יותר",null).show();

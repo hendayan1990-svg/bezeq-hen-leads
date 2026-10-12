@@ -5,6 +5,9 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.RectF;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.GradientDrawable;
@@ -109,6 +112,7 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
         needExtender.setTextColor(0xFF99F7E0);needExtender.setBackground(color(0xFF145247,14));
       }
     }
+    if(overlay!=null&&overlay.getParent()!=null)AppLanguage.translateTree(ARSurveyActivity.this,(View)overlay.getParent());
     handler.postDelayed(this,900);
   }};
   private static class Measure{Anchor anchor;int rssi;float distance;String room;Measure(Anchor a,int r,float d,String room){anchor=a;rssi=r;distance=d;this.room=room;}}
@@ -139,7 +143,7 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
     LinearLayout top=new LinearLayout(this);top.setOrientation(LinearLayout.VERTICAL);top.setPadding(dp(16),dp(12),dp(16),dp(12));
     top.setBackground(color(0xD90D1E39,16));
     FrameLayout.LayoutParams tl=new FrameLayout.LayoutParams(-1,-2,Gravity.TOP);tl.setMargins(dp(9),dp(12),dp(9),0);screen.addView(top,tl);
-    TextView title=new TextView(this);title.setText("PROLINK  /  AR COVERAGE");
+    TextView title=new TextView(this);title.setText("Bezeq WiFi 360  /  AR");
     title.setTextSize(20);title.setTextColor(Color.WHITE);title.setTypeface(null,1);title.setGravity(Gravity.RIGHT);top.addView(title);
     info=new TextView(this);info.setText("מציאות רבודה • עוקב אחר תנועת הטכנאי");
     info.setTextSize(12);info.setTextColor(0xFFADD0EC);info.setGravity(Gravity.RIGHT);top.addView(info);
@@ -202,7 +206,7 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
   private String reportText(){
     ArrayList<Measure> samples;
     synchronized(sessionLock){samples=new ArrayList<>(marks);}
-    StringBuilder b=new StringBuilder("ProLink WiFi PRO | סיכום סריקת כיסוי\n");
+    StringBuilder b=new StringBuilder("Bezeq WiFi 360 | סיכום סריקת כיסוי\n");
     b.append("CREATED BY HEN DAYAN\n\n");
     b.append("נקודות שנמדדו: ").append(samples.size()).append("\n");
     if(samples.size()<3){
@@ -248,7 +252,7 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
     return b.toString();
   }
   private void showReport(){
-    String report=reportText();
+    String report=AppLanguage.tr(this,reportText());
     TextView content=new TextView(this);content.setText(report);content.setTextSize(16);
     content.setTextColor(0xFFEEF7FF);content.setPadding(dp(18),dp(18),dp(18),dp(18));
     content.setBackgroundColor(0xFF102942);content.setTextDirection(View.TEXT_DIRECTION_RTL);
@@ -445,42 +449,74 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
     float x=(clip[0]/clip[3]+1)*width/2;
     float y=(1-clip[1]/clip[3])*height/2;
     if(x<0||y<0||x>width||y>height)return null;
-    return new Marker(x,y,rssi,name,candidate);
+    return new Marker(x,y,rssi,AppLanguage.tr(this,name),candidate);
   }
-  private final class MarkerOverlay extends View{
+  private final class MarkerOverlay extends View {
     private volatile List<Marker> visible=new ArrayList<>();
-    private final Paint paint=new Paint(3);
-    MarkerOverlay(Context c){super(c);setLayerType(View.LAYER_TYPE_SOFTWARE,null);}
-    void setMarkers(List<Marker> m){visible=m;postInvalidate();}
-    @Override protected void onDraw(Canvas c){
-      super.onDraw(c);
-      float sx=getWidth()/(float)Math.max(1,width),sy=getHeight()/(float)Math.max(1,height);
-      for(Marker m:visible){
-        float x=m.x*sx,y=m.y*sy;
-        boolean isRouter=m.rssi==-999;
-        int color=isRouter?0xFF40DAFE:m.candidate?0xFF39DEF5:SignalQuality.color(m.rssi);
-        paint.setStyle(Paint.Style.FILL);paint.setColor(color&0x40FFFFFF);
-        c.drawCircle(x,y,dp(29),paint);
-        paint.setColor(0xD910233F);c.drawCircle(x,y,dp(17),paint);
-        paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(dp(3));paint.setColor(color);
-        c.drawCircle(x,y,dp(17),paint);paint.setStyle(Paint.Style.FILL);
-        paint.setColor(color);c.drawCircle(x,y,dp(7),paint);
-        String name=isRouter?"◉ נתב ראשי":m.name+"  •  "+SignalQuality.name(m.rssi);
-        if(m.candidate)name="★ מיקום Mesh לבדיקה  •  "+m.name;
-        paint.setTypeface(android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.BOLD));
-        paint.setTextSize(dp(13));paint.setTextAlign(Paint.Align.CENTER);
-        float tw=paint.measureText(name), half=tw/2+dp(13);
-        float labelX=Math.max(half+dp(5),Math.min(getWidth()-half-dp(5),x));
-        float labelY=y-dp(32);
-        paint.setColor(0xF0091A30);
-        c.drawRoundRect(labelX-half,labelY-dp(20),labelX+half,labelY+dp(7),dp(12),dp(12),paint);
-        paint.setColor(color);
-        c.drawText(name,labelX,labelY,paint);
+    private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
+    private final Bitmap routerPhoto;
+    private final Bitmap extenderPhoto;
+    MarkerOverlay(Context context) {
+      super(context);
+      setLayerType(View.LAYER_TYPE_SOFTWARE,null);
+      routerPhoto=BitmapFactory.decodeResource(getResources(),R.drawable.ar_router);
+      extenderPhoto=BitmapFactory.decodeResource(getResources(),R.drawable.ar_extender);
+    }
+    void setMarkers(List<Marker> points){visible=points;postInvalidate();}
+    private void device(Canvas canvas,float cx,float cy,Bitmap photo,int tone,boolean chosen){
+      float width=dp(chosen?86:99),height=dp(chosen?105:102);
+      RectF panel=new RectF(cx-width/2-dp(9),cy-height/2-dp(10),cx+width/2+dp(9),cy+height/2+dp(9));
+      paint.clearShadowLayer();paint.setStyle(Paint.Style.FILL);
+      paint.setColor(0xBC071B34);paint.setShadowLayer(dp(17),0,dp(7),0xBB000000);
+      canvas.drawRoundRect(panel,dp(18),dp(18),paint);
+      paint.clearShadowLayer();
+      paint.setColor(tone);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(dp(3));
+      canvas.drawRoundRect(panel,dp(18),dp(18),paint);paint.setStyle(Paint.Style.FILL);
+      paint.setColor(0xFFFFffff);
+      RectF imageRect=new RectF(cx-width*.43f,cy-height*.43f,cx+width*.43f,cy+height*.43f);
+      if(photo!=null){
+        float scale=Math.min(imageRect.width()/photo.getWidth(),imageRect.height()/photo.getHeight());
+        float photoW=photo.getWidth()*scale,photoH=photo.getHeight()*scale;
+        RectF dst=new RectF(cx-photoW/2,cy-photoH/2,cx+photoW/2,cy+photoH/2);
+        canvas.drawBitmap(photo,null,dst,paint);
       }
-      paint.setColor(0xFF00DEFC);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(dp(2));
-      c.drawCircle(getWidth()/2f,getHeight()/2f,dp(22),paint);
-      c.drawLine(getWidth()/2f-dp(7),getHeight()/2f,getWidth()/2f+dp(7),getHeight()/2f,paint);
-      c.drawLine(getWidth()/2f,getHeight()/2f-dp(7),getWidth()/2f,getHeight()/2f+dp(7),paint);
+      paint.setColor(tone);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(dp(2));
+      canvas.drawArc(new RectF(cx-dp(34),panel.bottom-dp(19),cx+dp(34),panel.bottom+dp(9)),12,155,false,paint);
+      paint.setStyle(Paint.Style.FILL);
+    }
+    private void label(Canvas canvas,String label,float x,float y,int tone){
+      paint.setTextAlign(Paint.Align.CENTER);paint.setTypeface(android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.BOLD));paint.setTextSize(dp(13));
+      float textWidth=paint.measureText(label);
+      float half=Math.min(textWidth/2+dp(12),getWidth()*.45f);
+      x=Math.max(half+dp(3),Math.min(getWidth()-half-dp(3),x));
+      paint.setColor(0xF0081F39);
+      canvas.drawRoundRect(x-half,y-dp(21),x+half,y+dp(8),dp(11),dp(11),paint);
+      paint.setColor(tone);canvas.drawText(label,x,y,paint);
+    }
+    @Override protected void onDraw(Canvas canvas){
+      super.onDraw(canvas);
+      float sx=getWidth()/(float)Math.max(1,width);
+      float sy=getHeight()/(float)Math.max(1,height);
+      for(Marker point:visible){
+        float x=point.x*sx,y=point.y*sy;
+        boolean isRouter=point.rssi==-999;
+        int tone=isRouter?0xFF36D9FF:point.candidate?0xFF13F1BC:SignalQuality.color(point.rssi);
+        if(isRouter||point.candidate){
+          // Actual transparent product photos instead of circular AR dots.
+          device(canvas,x,y,isRouter?routerPhoto:extenderPhoto,tone,point.candidate);
+          label(canvas,isRouter?AppLanguage.tr(ARSurveyActivity.this,"נתב ראשי"):
+           AppLanguage.tr(ARSurveyActivity.this,"מיקום מוצע למגדיל")+" • "+point.name,x,y-dp(69),tone);
+        }else{
+          // Signal-only measurement: a compact readable chip, never a misleading device icon.
+          String note=point.name+" • "+AppLanguage.tr(ARSurveyActivity.this,SignalQuality.name(point.rssi));
+          label(canvas,note,x,y-dp(4),tone);
+          paint.setColor(tone);canvas.drawRoundRect(x-dp(3),y+dp(9),x+dp(3),y+dp(24),dp(3),dp(3),paint);
+        }
+      }
+      paint.setColor(0xFF1CDCF7);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(dp(2));
+      canvas.drawCircle(getWidth()/2f,getHeight()/2f,dp(23),paint);
+      canvas.drawLine(getWidth()/2f-dp(7),getHeight()/2f,getWidth()/2f+dp(7),getHeight()/2f,paint);
+      canvas.drawLine(getWidth()/2f,getHeight()/2f-dp(7),getWidth()/2f,getHeight()/2f+dp(7),paint);
       paint.setStyle(Paint.Style.FILL);
     }
   }

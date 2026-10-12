@@ -27,6 +27,7 @@ import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ImageView;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.text.SimpleDateFormat;
@@ -51,7 +52,11 @@ public final class MainActivity extends Activity {
   private JSONArray points=new JSONArray();
   private boolean busy=false;
   private SharedPreferences prefs;
-  private final Runnable refresh=new Runnable(){@Override public void run(){updateWifi();ui.postDelayed(this,2200);}};
+  private final Runnable refresh=new Runnable(){@Override public void run(){
+    updateWifi();
+    if(root!=null)AppLanguage.translateTree(MainActivity.this,root);
+    ui.postDelayed(this,2200);
+  }};
   private int dp(float n){return Math.round(getResources().getDisplayMetrics().density*n);}
   private GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
   @Override public void onCreate(Bundle b){
@@ -106,10 +111,23 @@ public final class MainActivity extends Activity {
     root=column();root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);scroll.addView(root);
     setContentView(scroll);
     LinearLayout head=column();head.setBackground(bg(NAVY,0));pad(head,22);root.addView(head);
-    TextView brand=text("PROLINK  /  WiFi PRO",27,Color.WHITE,true);head.addView(brand);
+    LinearLayout brandRow=new LinearLayout(this);
+    brandRow.setOrientation(LinearLayout.HORIZONTAL);brandRow.setGravity(Gravity.CENTER_VERTICAL);
+    brandRow.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+    ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.ic_prolink);
+    logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+    brandRow.addView(logo,new LinearLayout.LayoutParams(dp(55),dp(55)));
+    TextView brand=text("Bezeq WiFi 360",28,Color.WHITE,true);
+    brand.setGravity(Gravity.CENTER_VERTICAL);
+    brand.setTextDirection(View.TEXT_DIRECTION_LTR);
+    LinearLayout.LayoutParams brandParams=new LinearLayout.LayoutParams(-2,dp(55));brandParams.leftMargin=dp(12);
+    brandRow.addView(brand,brandParams);head.addView(brandRow);
     TextView tagline=text("Smart Home Network Diagnostics  •  CREATED BY HEN DAYAN",11,Color.rgb(133,216,248),false);head.addView(tagline);
     gap(head,12);
-    TextView heading=text("בדיקת רשת מקצועית",19,Color.WHITE,true);head.addView(heading);
+    TextView heading=text("כיסוי Wi-Fi ביתי מלא • בדיקת רשת מקצועית",19,Color.WHITE,true);head.addView(heading);
+    Button langs=button("🌐  Language / שפה",NAVY);
+    head.addView(langs,new LinearLayout.LayoutParams(-1,dp(42)));
+    langs.setOnClickListener(v->AppLanguage.choose(this));
     gap(head,9);
     Button checkUpdates=button("↻ בדוק עדכונים לאפליקציה",CYAN);
     head.addView(checkUpdates,new LinearLayout.LayoutParams(-1,dp(43)));
@@ -126,6 +144,7 @@ public final class MainActivity extends Activity {
     guide=column();pad(guide,15);root.addView(guide);
     cloud=column();pad(cloud,15);root.addView(cloud);
     buildSpeed();buildMeasurements();buildGuide();buildCloud();showPane(0);
+    AppLanguage.translateTree(this,root);
     gap(root,14);
     TextView footer=text("© 2026 HEN DAYAN · ALL RIGHTS RESERVED",11,SUB,false);footer.setGravity(Gravity.CENTER);root.addView(footer);gap(root,22);
   }
@@ -250,7 +269,7 @@ public final class MainActivity extends Activity {
     String url=CloudSync.viewer(this);
     if(url.isEmpty()){cloudStatus.setText("יש לפתוח ביקור כדי ליצור קישור לקוח");return;}
     Intent send=new Intent(Intent.ACTION_SEND);send.setType("text/plain");
-    send.putExtra(Intent.EXTRA_TEXT,"ProLink WiFi PRO — צפייה בתוצאות בדיקת הרשת בזמן אמת:\n"+url);
+    send.putExtra(Intent.EXTRA_TEXT,"Bezeq WiFi 360 — צפייה בתוצאות בדיקת הרשת בזמן אמת:\n"+url);
     startActivity(Intent.createChooser(send,"שליחת קישור צפייה ללקוח"));
   }
   private void updateWifi(){
@@ -271,7 +290,7 @@ public final class MainActivity extends Activity {
       }
       if(link>0)kind+=" • מהירות קישור "+link+" Mbps (לא מהירות אינטרנט)";
       if(freq>0)kind+=" • "+(freq>=5925?"6GHz":freq>=4900?"5GHz":"2.4GHz");
-      wifiText.setText(kind);
+      wifiText.setText(AppLanguage.tr(this,kind));
       if(signalChip!=null){
         if(kind.startsWith("Ethernet")){signalChip.setText("● חיבור קווי פעיל");signalChip.setTextColor(GREEN);signalChip.setBackground(bg(0xFFE9F7F0,12));}
         else if(SignalQuality.valid(rssi)){signalChip.setText("● איכות קליטה: "+SignalQuality.name(rssi)+"\n"+SignalQuality.customerDescription(rssi));signalChip.setTextColor(SignalQuality.color(rssi));signalChip.setBackground(bg(rssi>=-65?0xFFE9F7F0:rssi>=-72?0xFFFFF6DF:0xFFFFEDF0,12));}
@@ -372,7 +391,7 @@ public final class MainActivity extends Activity {
   }
   private void share(){
     if(points.length()==0){Toast.makeText(this,"אין מדידות לשיתוף",Toast.LENGTH_SHORT).show();return;}
-    StringBuilder s=new StringBuilder("ProLink WiFi PRO — דו״ח מדידה\nCreated by HEN DAYAN\n\n");
+    StringBuilder s=new StringBuilder("Bezeq WiFi 360 — דו״ח מדידה\nCreated by HEN DAYAN\n\n");
     for(int i=0;i<points.length();i++){JSONObject p=points.optJSONObject(i);
       s.append(p.optString("room")).append(" • ").append(p.optBoolean("after")?"אחרי":"לפני")
       .append("\nהורדה ").append(p.optString("downloadPeak")).append(" Mbps, העלאה ").append(p.optString("uploadPeak"))
