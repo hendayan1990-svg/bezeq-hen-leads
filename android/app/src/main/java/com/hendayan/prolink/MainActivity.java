@@ -139,6 +139,11 @@ public final class MainActivity extends Activity {
     TextView wifiNotice=text("לפני תחילת בדיקה יש להתחבר לרשת ה־Wi-Fi הביתית של הלקוח.",15,Color.WHITE,true);
     wifiNotice.setBackground(bg(0xFF125A7D,14));
     pad(wifiNotice,13);head.addView(wifiNotice);
+    gap(head,8);
+    Button wifiTutorial=button("📶  לא יודעים להתחבר? מדריך מפורט עם תמונות",0xFF17689B);
+    wifiTutorial.setTextSize(15);
+    head.addView(wifiTutorial,new LinearLayout.LayoutParams(-1,dp(52)));
+    wifiTutorial.setOnClickListener(v->openWifiHelp());
     gap(head,10);
     Button homeScan=button("🏠  סריקת הבית בעצמך • ללא טכנאי",0xFF0E9E93);
     homeScan.setTextSize(17);
@@ -264,6 +269,9 @@ public final class MainActivity extends Activity {
     }catch(Exception ignored){}
     return false;
   }
+  private void openWifiHelp(){
+    startActivity(new Intent(this,WifiHelpActivity.class));
+  }
   private boolean requireHomeWifi(boolean allowWired){
     if(hasConnectedNetwork(allowWired))return true;
     String note="יש להתחבר לרשת ה־Wi-Fi הביתית על מנת לבצע בדיקה.\n"+
@@ -272,7 +280,8 @@ public final class MainActivity extends Activity {
     new android.app.AlertDialog.Builder(this,android.app.AlertDialog.THEME_DEVICE_DEFAULT_DARK)
       .setTitle("נדרש חיבור לרשת הביתית")
       .setMessage(AppLanguage.tr(this,note))
-      .setPositiveButton(AppLanguage.tr(this,"פתח הגדרות Wi-Fi"),(dialog,which)->{
+      .setPositiveButton(AppLanguage.tr(this,"מדריך חיבור עם תמונות"),(dialog,which)->openWifiHelp())
+      .setNeutralButton(AppLanguage.tr(this,"פתח הגדרות Wi-Fi"),(dialog,which)->{
         Intent settings=new Intent(android.provider.Settings.ACTION_WIFI_SETTINGS);
         startActivity(settings);
       })

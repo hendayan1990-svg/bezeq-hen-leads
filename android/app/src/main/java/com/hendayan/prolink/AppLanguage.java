@@ -87,6 +87,8 @@ public final class AppLanguage {
     put("לפני תחילת בדיקה יש להתחבר לרשת ה־Wi-Fi הביתית של הלקוח.","قبل البدء، اتصل بشبكة Wi-Fi المنزلية للعميل.","Before testing, connect to the customer's home Wi-Fi network.","Перед проверкой подключитесь к домашней сети Wi-Fi клиента.","Antes de probar, conéctate al Wi-Fi del cliente.");
     put("ודא שהטלפון מחובר לרשת הביתית של הלקוח ולא לאינטרנט הסלולרי.","تأكد من اتصال الهاتف بشبكة المنزل وليس ببيانات الهاتف.","Make sure the phone uses the customer's home Wi-Fi, not mobile data.","Убедитесь, что телефон подключён к домашнему Wi-Fi, а не к мобильной сети.","Comprueba que el móvil use el Wi-Fi de casa, no datos móviles.");
     put("לבדיקת מהירות אפשר להשתמש גם במתאם USB-C ל־RJ45 עם חיבור Ethernet פעיל.","يمكن أيضًا قياس السرعة عبر محول USB-C إلى RJ45 واتصال Ethernet.","For speed tests, an active Ethernet connection via a USB-C to RJ45 adapter also works.","Для проверки скорости можно использовать активный Ethernet через адаптер USB-C—RJ45.","La prueba de velocidad también admite Ethernet mediante adaptador USB-C a RJ45.");
+    put("לא יודעים להתחבר? מדריך מפורט עם תמונות","لا تعرف كيف تتصل؟ دليل مصور خطوة بخطوة","Need help connecting? Picture guide","Нужна помощь с Wi-Fi? Инструкция с картинками","¿Necesitas ayuda? Guía con imágenes");
+    put("מדריך חיבור עם תמונות","دليل اتصال بالصور","Picture connection guide","Инструкция с картинками","Guía de conexión con imágenes");
     put("פתח הגדרות Wi-Fi","فتح إعدادات Wi-Fi","Open Wi-Fi settings","Открыть настройки Wi-Fi","Abrir ajustes Wi-Fi");
     put("ביטול","إلغاء","Cancel","Отмена","Cancelar");
     put("שפה","اللغة","Language","Язык","Idioma");
