@@ -61,7 +61,7 @@ const api=async(req,res,path,query)=>{
  const quota=path.startsWith('/api/public/')?240:req.method==='GET'?120:50;
  if(!throttle(req,quota))return err(res,429,'Too many requests');
  if(path==='/api/health'&&req.method==='GET')return reply(res,200,{ok:true,service:'Bezeq WiFi 360',store:redis?.isReady?'redis':redisStatus,now:Date.now()});
- if(path==='/api/version'&&req.method==='GET')return reply(res,200,{ok:true,versionCode:7,versionName:'1.7.0-home-scan',downloadUrl:'https://prolink-wifi-pro-live.onrender.com/download/prolink-wifi-pro.apk',releaseNotes:'עיצוב מציאות רבודה מקצועי, הצגת קליטה חיה, סיכום ציוד ומיקומים, ועדכונים מהענן'});
+ if(path==='/api/version'&&req.method==='GET')return reply(res,200,{ok:true,versionCode:8,versionName:'1.8.0-wifi-connection-check',downloadUrl:'https://prolink-wifi-pro-live.onrender.com/download/prolink-wifi-pro.apk',releaseNotes:'עיצוב מציאות רבודה מקצועי, הצגת קליטה חיה, סיכום ציוד ומיקומים, ועדכונים מהענן'});
  if(path==='/api/sessions/recover'&&req.method==='POST'){
    if(!auth(req))return err(res,401,'Unauthorized technician');
    const b=await body(req),id=limited(b.id,50),token=limited(b.viewerToken,200);
@@ -122,9 +122,9 @@ const server=http.createServer(async(req,res)=>{
  try{
   if(path.startsWith('/api/'))return await api(req,res,path,url.searchParams);
   if(path==='/download/prolink-wifi-pro.apk'&&req.method==='GET'){
-    const apk=await readFile(new URL('./public/Bezeq_WiFi_360_v1.7.apk',import.meta.url));
+    const apk=await readFile(new URL('./public/Bezeq_WiFi_360_v1.8.apk',import.meta.url));
     res.writeHead(200,{'content-type':'application/vnd.android.package-archive',
-      'content-length':apk.length,'content-disposition':'attachment; filename="Bezeq_WiFi_360_v1.7.apk"',
+      'content-length':apk.length,'content-disposition':'attachment; filename="Bezeq_WiFi_360_v1.8.apk"',
       'cache-control':'no-store','x-content-type-options':'nosniff'});
     return res.end(apk);
   }

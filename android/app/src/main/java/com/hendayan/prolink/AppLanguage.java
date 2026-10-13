@@ -83,6 +83,12 @@ public final class AppLanguage {
     put("ביטול","إلغاء","Cancel","Отмена","Cancelar");
     put("מחק","حذف","Delete","Удалить","Eliminar");
     put("שתף","مشاركة","Share","Поделиться","Compartir");
+    put("יש להתחבר לרשת ה־Wi-Fi הביתית על מנת לבצע בדיקה.","يجب الاتصال بشبكة Wi-Fi المنزلية لإجراء الاختبار.","Connect to the home Wi-Fi network to run a test.","Для проверки подключитесь к домашней сети Wi-Fi.","Conéctate al Wi-Fi de casa para realizar la prueba.");
+    put("לפני תחילת בדיקה יש להתחבר לרשת ה־Wi-Fi הביתית של הלקוח.","قبل البدء، اتصل بشبكة Wi-Fi المنزلية للعميل.","Before testing, connect to the customer's home Wi-Fi network.","Перед проверкой подключитесь к домашней сети Wi-Fi клиента.","Antes de probar, conéctate al Wi-Fi del cliente.");
+    put("ודא שהטלפון מחובר לרשת הביתית של הלקוח ולא לאינטרנט הסלולרי.","تأكد من اتصال الهاتف بشبكة المنزل وليس ببيانات الهاتف.","Make sure the phone uses the customer's home Wi-Fi, not mobile data.","Убедитесь, что телефон подключён к домашнему Wi-Fi, а не к мобильной сети.","Comprueba que el móvil use el Wi-Fi de casa, no datos móviles.");
+    put("לבדיקת מהירות אפשר להשתמש גם במתאם USB-C ל־RJ45 עם חיבור Ethernet פעיל.","يمكن أيضًا قياس السرعة عبر محول USB-C إلى RJ45 واتصال Ethernet.","For speed tests, an active Ethernet connection via a USB-C to RJ45 adapter also works.","Для проверки скорости можно использовать активный Ethernet через адаптер USB-C—RJ45.","La prueba de velocidad también admite Ethernet mediante adaptador USB-C a RJ45.");
+    put("פתח הגדרות Wi-Fi","فتح إعدادات Wi-Fi","Open Wi-Fi settings","Открыть настройки Wi-Fi","Abrir ajustes Wi-Fi");
+    put("ביטול","إلغاء","Cancel","Отмена","Cancelar");
     put("שפה","اللغة","Language","Язык","Idioma");
   }
   private AppLanguage(){}

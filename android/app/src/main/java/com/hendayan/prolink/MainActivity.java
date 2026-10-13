@@ -136,6 +136,10 @@ public final class MainActivity extends Activity {
     head.addView(checkUpdates,new LinearLayout.LayoutParams(-1,dp(43)));
     checkUpdates.setOnClickListener(v->UpdateManager.check(this,true));
     gap(head,10);
+    TextView wifiNotice=text("לפני תחילת בדיקה יש להתחבר לרשת ה־Wi-Fi הביתית של הלקוח.",15,Color.WHITE,true);
+    wifiNotice.setBackground(bg(0xFF125A7D,14));
+    pad(wifiNotice,13);head.addView(wifiNotice);
+    gap(head,10);
     Button homeScan=button("🏠  סריקת הבית בעצמך • ללא טכנאי",0xFF0E9E93);
     homeScan.setTextSize(17);
     head.addView(homeScan,new LinearLayout.LayoutParams(-1,dp(57)));
@@ -219,7 +223,7 @@ public final class MainActivity extends Activity {
     LinearLayout c=card(guide);
     adviceText=text("למיקום מקצועי: בדוק תחילה ליד הנתב, אחר כך במסדרון, ולבסוף בחדר הרחוק.",15,Color.WHITE,false);c.addView(adviceText);
     gap(c,12);Button launch=button("פתח סיור מציאות רבודה",BLUE);c.addView(launch);
-    launch.setOnClickListener(v->startActivity(new Intent(this,ARSurveyActivity.class)));
+    launch.setOnClickListener(v->{if(requireHomeWifi(false))startActivity(new Intent(this,ARSurveyActivity.class));});
     gap(c,10);
     Button scanForCustomer=button("סריקת בית אוטומטית ללקוח",0xFF0E9E93);
     c.addView(scanForCustomer);
@@ -247,7 +251,36 @@ public final class MainActivity extends Activity {
         startActivity(Intent.createChooser(share,"שליחת דוח כיסוי"));
       }).setNegativeButton("סגור",null).show();
   }
+  private boolean hasConnectedNetwork(boolean allowWired){
+    try{
+      ConnectivityManager cm=(ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+      if(cm==null)return false;
+      for(Network network:cm.getAllNetworks()){
+        NetworkCapabilities caps=cm.getNetworkCapabilities(network);
+        if(caps==null)continue;
+        if(caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))return true;
+        if(allowWired&&caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))return true;
+      }
+    }catch(Exception ignored){}
+    return false;
+  }
+  private boolean requireHomeWifi(boolean allowWired){
+    if(hasConnectedNetwork(allowWired))return true;
+    String note="יש להתחבר לרשת ה־Wi-Fi הביתית על מנת לבצע בדיקה.\n"+
+      "ודא שהטלפון מחובר לרשת הביתית של הלקוח ולא לאינטרנט הסלולרי.";
+    if(allowWired)note+="\nלבדיקת מהירות אפשר להשתמש גם במתאם USB-C ל־RJ45 עם חיבור Ethernet פעיל.";
+    new android.app.AlertDialog.Builder(this,android.app.AlertDialog.THEME_DEVICE_DEFAULT_DARK)
+      .setTitle("נדרש חיבור לרשת הביתית")
+      .setMessage(AppLanguage.tr(this,note))
+      .setPositiveButton(AppLanguage.tr(this,"פתח הגדרות Wi-Fi"),(dialog,which)->{
+        Intent settings=new Intent(android.provider.Settings.ACTION_WIFI_SETTINGS);
+        startActivity(settings);
+      })
+      .setNegativeButton(AppLanguage.tr(this,"ביטול"),null).show();
+    return false;
+  }
   private void startSelfScan(){
+    if(!requireHomeWifi(false))return;
     LinearLayout layout=column();
     layout.setPadding(dp(22),dp(10),dp(22),0);
     TextView description=text("אפשר לסרוק את הבית בלי טכנאי. ציין גודל משוער וקומות, "
@@ -368,6 +401,7 @@ public final class MainActivity extends Activity {
     }catch(Exception e){wifiText.setText("נדרשת הרשאת גישה לנתוני Wi-Fi");}
   }
   private void runSpeed(){
+    if(!requireHomeWifi(true))return;
     if(busy)return;busy=true;testButton.setEnabled(false);statusText.setText("מתחיל...");speedGauge.reset();speedGauge.loading("מחבר שרתים ומודד...");
     new Thread(()->{
       try{
