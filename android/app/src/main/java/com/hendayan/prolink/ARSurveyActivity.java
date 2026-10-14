@@ -333,19 +333,87 @@ public final class ARSurveyActivity extends Activity implements GLSurfaceView.Re
   }
   private void showReport(){
     String report=AppLanguage.tr(this,reportText());
-    if(selfScan)getSharedPreferences("home_scan",MODE_PRIVATE).edit()
-      .putString("last_report",report).putLong("report_timestamp",System.currentTimeMillis()).apply();
+    if(selfScan){
+      getSharedPreferences("home_scan",MODE_PRIVATE).edit()
+        .putString("last_report",report).putLong("report_timestamp",System.currentTimeMillis()).apply();
+      ArrayList<HomeScanAdvisor.Sample> samples=new ArrayList<>();
+      for(Measure m:samplesFromMeasurements()){
+        Pose pose=m.anchor.getPose();
+        samples.add(new HomeScanAdvisor.Sample(m.room,m.floor,m.rssi,
+          pose.tx(),pose.ty(),pose.tz(),m.distance));
+      }
+      HomeScanAdvisor.Recommendation decision=HomeScanAdvisor.evaluate(samples,claimedArea,floorCount);
+      showCustomerReport(report,decision,samples.size());
+      return;
+    }
     TextView content=new TextView(this);content.setText(report);content.setTextSize(16);
     content.setTextColor(0xFFEEF7FF);content.setPadding(dp(18),dp(18),dp(18),dp(18));
     content.setBackgroundColor(0xFF102942);content.setTextDirection(View.TEXT_DIRECTION_RTL);
     android.widget.ScrollView scroll=new android.widget.ScrollView(this);scroll.addView(content);
-    new AlertDialog.Builder(this).setTitle(selfScan?
-        "דוח כיסוי הבית והמלצות ציוד":"סיכום סריקה • הצעת ציוד ללקוח")
+    new AlertDialog.Builder(this).setTitle("סיכום סריקה • הצעת ציוד ללקוח")
       .setView(scroll)
       .setPositiveButton("שתף סיכום",(d,w)->{
         Intent send=new Intent(Intent.ACTION_SEND);send.setType("text/plain");
         send.putExtra(Intent.EXTRA_TEXT,report);
         startActivity(Intent.createChooser(send,"שליחת סיכום ללקוח"));
+      })
+      .setNeutralButton("סיים",(d,w)->finish())
+      .setNegativeButton("המשך סריקה",null).show();
+  }
+  private void showCustomerReport(String report,HomeScanAdvisor.Recommendation result,int pointCount){
+    LinearLayout layout=new LinearLayout(this);layout.setOrientation(LinearLayout.VERTICAL);
+    layout.setPadding(dp(16),dp(16),dp(16),dp(12));
+    layout.setBackgroundColor(0xFF0C223B);
+    String title=result.insufficient?"נדרשות עוד מדידות":
+       result.preliminaryUnits>0?"נמצא אזור שכדאי לשפר":
+       result.cablePreferred?"נדרשת בדיקה לפתרון קווי":"קליטה טובה במדידות";
+    int accent=result.insufficient?0xFFF8BF56:result.preliminaryUnits>0||result.cablePreferred?
+      0xFFFFC170:0xFF41E3B1;
+    TextView headline=new TextView(this);headline.setText(title);
+    headline.setTextColor(accent);headline.setTextSize(22);
+    headline.setTypeface(null,1);
+    headline.setGravity(Gravity.RIGHT);layout.addView(headline);
+    TextView count=new TextView(this);
+    count.setText("נקודות מדודות: "+pointCount+"  •  קומות: "+floorCount);
+    count.setTextColor(0xFFADC6DA);count.setTextSize(14);
+    count.setGravity(Gravity.RIGHT);count.setPadding(0,dp(6),0,dp(12));
+    layout.addView(count);
+    TextView recommendation=new TextView(this);
+    String message=result.insufficient?"השלם את הסריקה בכל החדרים לפני המלצת ציוד.":
+      result.preliminaryUnits>0?"לניסוי: עד "+result.preliminaryUnits+" יחידות Mesh / נקודות גישה. אישור סופי רק לאחר בדיקת קליטה ומהירות.":
+      result.cablePreferred?"ייתכן שפתרון קווי עדיף ממגדיל אלחוטי. נדרשת בדיקה נוספת.":
+      "לא נמצאה חולשת קליטה עקבית. אין כרגע הצדקה להמליץ על ציוד נוסף.";
+    recommendation.setText(message);
+    recommendation.setTextColor(Color.WHITE);recommendation.setTextSize(16);
+    recommendation.setGravity(Gravity.RIGHT);
+    recommendation.setPadding(dp(13),dp(13),dp(13),dp(13));
+    recommendation.setBackground(color(0xFF153857,13));
+    layout.addView(recommendation);
+    TextView disclaimer=new TextView(this);
+    disclaimer.setText("המלצה ראשונית על בסיס קליטה שנמדדה. לא לפי מ״ר בלבד.");
+    disclaimer.setTextSize(12);disclaimer.setTextColor(0xFFA6BDD0);
+    disclaimer.setPadding(0,dp(10),0,dp(11));layout.addView(disclaimer);
+    TextView detail=new TextView(this);detail.setText(report);
+    detail.setTextColor(0xFFEAF5FF);detail.setTextSize(13);
+    detail.setBackground(color(0xFF102D4B,12));detail.setPadding(dp(12),dp(12),dp(12),dp(12));
+    detail.setVisibility(View.GONE);
+    Button showMore=btn("הצג מדידות ומיקומים  ⌄",0xFF195474);
+    layout.addView(showMore,new LinearLayout.LayoutParams(-1,dp(43)));
+    layout.addView(detail,new LinearLayout.LayoutParams(-1,-2));
+    showMore.setOnClickListener(v->{
+      boolean open=detail.getVisibility()==View.GONE;
+      detail.setVisibility(open?View.VISIBLE:View.GONE);
+      showMore.setText(open?"הסתר פירוט  ⌃":"הצג מדידות ומיקומים  ⌄");
+    });
+    android.widget.ScrollView scroll=new android.widget.ScrollView(this);
+    scroll.addView(layout);
+    new AlertDialog.Builder(this).setTitle("Bezeq WiFi 360 • סיכום הבית")
+      .setView(scroll)
+      .setPositiveButton("שתף דוח",(d,w)->{
+        Intent share=new Intent(Intent.ACTION_SEND);
+        share.setType("text/plain");
+        share.putExtra(Intent.EXTRA_TEXT,report);
+        startActivity(Intent.createChooser(share,"שליחת דוח"));
       })
       .setNeutralButton("סיים",(d,w)->finish())
       .setNegativeButton("המשך סריקה",null).show();

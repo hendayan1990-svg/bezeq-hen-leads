@@ -28,6 +28,7 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ImageView;
+import android.widget.FrameLayout;
 import android.widget.Spinner;
 import android.widget.ArrayAdapter;
 import android.text.InputType;
@@ -41,7 +42,9 @@ public final class MainActivity extends Activity {
   private static final int NAVY=Color.rgb(13,30,57), BLUE=Color.rgb(26,105,220), CYAN=Color.rgb(4,160,187);
   private static final int LIGHT=Color.rgb(7,19,36), SUB=Color.rgb(169,195,219), GREEN=Color.rgb(21,213,165);
   private final Handler ui=new Handler(Looper.getMainLooper());
-  private LinearLayout root,main,tests,history,guide,cloud;
+  private LinearLayout root,main,tests,history,guide,cloud,landing,advancedPanel;
+  private ScrollView homeScroll;
+  private TextView landingSignal,landingWifi,landingStatus;
   private TextView wifiText,resultsText,statusText,historyText,adviceText,cloudStatus;
   private Button testButton;
   private SpeedGaugeView speedGauge;
@@ -57,6 +60,7 @@ public final class MainActivity extends Activity {
   private SharedPreferences prefs;
   private final Runnable refresh=new Runnable(){@Override public void run(){
     updateWifi();
+    refreshHomeSignal();
     if(root!=null)AppLanguage.translateTree(MainActivity.this,root);
     ui.postDelayed(this,2200);
   }};
@@ -109,70 +113,234 @@ public final class MainActivity extends Activity {
     EditText e=new EditText(this);e.setHint(hint);e.setSingleLine(true);e.setTextSize(15);e.setTextDirection(View.TEXT_DIRECTION_RTL);
     e.setBackground(bg(Color.rgb(9,27,50),10));e.setTextColor(Color.WHITE);e.setHintTextColor(SUB);pad(e,10);return e;
   }
+  private GradientDrawable primaryGradient(){
+    GradientDrawable d=new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+      new int[]{0xFF04A8C0,0xFF1970D6});
+    d.setCornerRadius(dp(17));
+    return d;
+  }
+  private void showAdvancedPane(int which){
+    if(landing==null||advancedPanel==null)return;
+    landing.setVisibility(View.GONE);
+    advancedPanel.setVisibility(View.VISIBLE);
+    showPane(which);
+    if(homeScroll!=null)homeScroll.post(()->homeScroll.smoothScrollTo(0,0));
+  }
+  private void showHome(){
+    if(landing==null||advancedPanel==null)return;
+    advancedPanel.setVisibility(View.GONE);
+    landing.setVisibility(View.VISIBLE);
+    if(homeScroll!=null)homeScroll.post(()->homeScroll.smoothScrollTo(0,0));
+  }
+  private void refreshHomeSignal(){
+    if(landingSignal==null)return;
+    boolean wifi=hasConnectedNetwork(false);
+    int value=wifi?currentRssi():0;
+    int tone=wifi&&SignalQuality.valid(value)?SignalQuality.color(value):0xFFF8C56A;
+    if(!wifi){
+      landingSignal.setText(AppLanguage.tr(this,"לא מחובר ל־Wi-Fi"));
+      landingWifi.setText(AppLanguage.tr(this,"התחבר לרשת הביתית כדי להתחיל סריקה."));
+      landingStatus.setText(AppLanguage.tr(this,"ממתין לחיבור"));
+      landingStatus.setBackground(bg(0xFF543C26,14));
+    }else{
+      landingSignal.setText(AppLanguage.tr(this,SignalQuality.valid(value)?
+        "קליטה: "+SignalQuality.name(value):"מחובר ל־Wi-Fi"));
+      landingWifi.setText(AppLanguage.tr(this,"מחובר ל־Wi-Fi • ודא שזו הרשת הביתית"));
+      landingStatus.setText(AppLanguage.tr(this,"מוכן לסריקה"));
+      landingStatus.setBackground(bg(0xFF124C46,14));
+    }
+    landingSignal.setTextColor(tone);
+    landingStatus.setTextColor(wifi?0xFF87FFE0:0xFFFFDB9C);
+  }
+  private LinearLayout stepCard(String icon,String label){
+    LinearLayout v=column();
+    v.setGravity(Gravity.CENTER);
+    v.setBackground(bg(0xFF102A45,15));
+    pad(v,7);
+    TextView graphic=text(icon,21,0xFF2CCAE6,true);
+    graphic.setGravity(Gravity.CENTER);v.addView(graphic);
+    TextView caption=text(label,12,Color.WHITE,true);
+    caption.setGravity(Gravity.CENTER);v.addView(caption);
+    return v;
+  }
   private void build(){
-    ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(LIGHT);
-    root=column();root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);scroll.addView(root);
-    setContentView(scroll);
-    LinearLayout head=column();head.setBackground(bg(NAVY,0));pad(head,22);root.addView(head);
-    LinearLayout brandRow=new LinearLayout(this);
-    brandRow.setOrientation(LinearLayout.HORIZONTAL);brandRow.setGravity(Gravity.CENTER_VERTICAL);
-    brandRow.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-    ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.ic_prolink);
+    homeScroll=new ScrollView(this);
+    homeScroll.setFillViewport(true);
+    homeScroll.setBackgroundColor(LIGHT);
+    root=column();
+    homeScroll.addView(root);
+    setContentView(homeScroll);
+
+    LinearLayout head=column();
+    head.setBackground(bg(0xFF0A2039,0));pad(head,16);
+    root.addView(head);
+    LinearLayout topRow=new LinearLayout(this);
+    topRow.setOrientation(LinearLayout.HORIZONTAL);
+    topRow.setGravity(Gravity.CENTER_VERTICAL);
+    topRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+    head.addView(topRow,new LinearLayout.LayoutParams(-1,dp(58)));
+    ImageView logo=new ImageView(this);
+    logo.setImageResource(R.drawable.ic_prolink);
     logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
-    brandRow.addView(logo,new LinearLayout.LayoutParams(dp(55),dp(55)));
-    TextView brand=text("Bezeq WiFi 360",28,Color.WHITE,true);
-    brand.setGravity(Gravity.CENTER_VERTICAL);
+    topRow.addView(logo,new LinearLayout.LayoutParams(dp(48),dp(48)));
+    LinearLayout brandText=column();
+    LinearLayout.LayoutParams brandP=new LinearLayout.LayoutParams(0,-2,1);
+    brandP.setMargins(dp(8),0,dp(5),0);topRow.addView(brandText,brandP);
+    TextView brand=text("Bezeq WiFi 360",21,Color.WHITE,true);
     brand.setTextDirection(View.TEXT_DIRECTION_LTR);
-    LinearLayout.LayoutParams brandParams=new LinearLayout.LayoutParams(-2,dp(55));brandParams.leftMargin=dp(12);
-    brandRow.addView(brand,brandParams);head.addView(brandRow);
-    TextView tagline=text("Smart Home Network Diagnostics  •  CREATED BY HEN DAYAN",11,Color.rgb(133,216,248),false);head.addView(tagline);
-    gap(head,12);
-    TextView heading=text("כיסוי Wi-Fi ביתי מלא • בדיקת רשת מקצועית",19,Color.WHITE,true);head.addView(heading);
-    Button langs=button("🌐  Language / שפה",NAVY);
-    head.addView(langs,new LinearLayout.LayoutParams(-1,dp(42)));
+    brandText.addView(brand);
+    TextView subtitle=text("כיסוי Wi-Fi ביתי חכם",12,0xFF8DC9EC,false);
+    brandText.addView(subtitle);
+    Button langs=button("🌐 שפה",NAVY);
+    langs.setTextSize(12);
+    topRow.addView(langs,new LinearLayout.LayoutParams(dp(84),dp(42)));
     langs.setOnClickListener(v->AppLanguage.choose(this));
-    gap(head,9);
-    Button checkUpdates=button("↻ בדוק עדכונים לאפליקציה",CYAN);
-    head.addView(checkUpdates,new LinearLayout.LayoutParams(-1,dp(43)));
-    checkUpdates.setOnClickListener(v->UpdateManager.check(this,true));
-    gap(head,10);
-    TextView wifiNotice=text("לפני תחילת בדיקה יש להתחבר לרשת ה־Wi-Fi הביתית של הלקוח.",15,Color.WHITE,true);
-    wifiNotice.setBackground(bg(0xFF125A7D,14));
-    pad(wifiNotice,13);head.addView(wifiNotice);
-    gap(head,8);
-    Button wifiTutorial=button("📶  לא יודעים להתחבר? מדריך מפורט עם תמונות",0xFF17689B);
-    wifiTutorial.setTextSize(15);
-    head.addView(wifiTutorial,new LinearLayout.LayoutParams(-1,dp(52)));
-    wifiTutorial.setOnClickListener(v->openWifiHelp());
-    gap(head,10);
-    Button homeScan=button("🏠  סריקת הבית בעצמך • ללא טכנאי",0xFF0E9E93);
-    homeScan.setTextSize(17);
-    head.addView(homeScan,new LinearLayout.LayoutParams(-1,dp(57)));
-    homeScan.setOnClickListener(v->startSelfScan());
-    gap(head,7);
-    Button lastReport=button("דוח סריקת הבית האחרון",NAVY);
-    head.addView(lastReport,new LinearLayout.LayoutParams(-1,dp(42)));
-    lastReport.setOnClickListener(v->showLatestHomeReport());
-    gap(head,9);
-    LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);nav.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-    pad(nav,7);root.addView(nav);
+
+    landing=column();pad(landing,16);
+    root.addView(landing);
+    FrameLayout hero=new FrameLayout(this);
+    hero.setBackground(bg(0xFF112947,23));hero.setClipToOutline(true);
+    landing.addView(hero,new LinearLayout.LayoutParams(-1,dp(190)));
+    ImageView art=new ImageView(this);
+    art.setImageResource(R.drawable.home_hero);
+    art.setScaleType(ImageView.ScaleType.CENTER_CROP);
+    hero.addView(art,new FrameLayout.LayoutParams(-1,-1));
+    LinearLayout overlay=column();
+    overlay.setPadding(dp(17),dp(24),dp(17),dp(12));
+    FrameLayout.LayoutParams overlayP=new FrameLayout.LayoutParams(-1,-1);
+    hero.addView(overlay,overlayP);
+    TextView intro=text("רואים את הכיסוי.\nמשפרים את הבית.",25,Color.WHITE,true);
+    intro.setLineSpacing(dp(1),1.03f);
+    overlay.addView(intro);
+    gap(overlay,10);
+    TextView summary=text("סריקה קלה שמראה איפה האות חלש\nואיזה פתרון כדאי לבדוק.",13,0xFFDAEDFF,false);
+    overlay.addView(summary);
+
+    gap(landing,14);
+    LinearLayout signal=card(landing);
+    signal.setPadding(dp(16),dp(14),dp(16),dp(14));
+    LinearLayout statusRow=new LinearLayout(this);
+    statusRow.setOrientation(LinearLayout.HORIZONTAL);
+    statusRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+    statusRow.setGravity(Gravity.CENTER_VERTICAL);
+    signal.addView(statusRow);
+    LinearLayout left=column();
+    statusRow.addView(left,new LinearLayout.LayoutParams(0,-2,1));
+    landingSignal=text("בודק קליטה...",23,0xFF54E8C2,true);
+    left.addView(landingSignal);
+    landingWifi=text("בודק חיבור אלחוטי",12,SUB,false);
+    left.addView(landingWifi);
+    landingStatus=text("מתחבר",11,0xFFCBF6E9,true);
+    landingStatus.setGravity(Gravity.CENTER);
+    landingStatus.setBackground(bg(0xFF124C46,14));
+    pad(landingStatus,7);
+    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(94),-2);
+    lp.setMargins(dp(8),0,0,0);statusRow.addView(landingStatus,lp);
+
+    LinearLayout steps=card(landing);
+    steps.setPadding(dp(13),dp(13),dp(13),dp(13));
+    TextView stepsTitle=text("3 צעדים — וסיימנו",14,Color.WHITE,true);
+    steps.addView(stepsTitle);gap(steps,11);
+    LinearLayout stepRow=new LinearLayout(this);
+    stepRow.setOrientation(LinearLayout.HORIZONTAL);
+    stepRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+    steps.addView(stepRow);
+    String[][] stepLabels={{"01","התחבר"},{"02","סרוק"},{"03","קבל המלצה"}};
+    for(int i=0;i<stepLabels.length;i++){
+      LinearLayout tile=stepCard(stepLabels[i][0],stepLabels[i][1]);
+      LinearLayout.LayoutParams tileP=new LinearLayout.LayoutParams(0,dp(83),1);
+      if(i>0)tileP.rightMargin=dp(8);
+      stepRow.addView(tile,tileP);
+    }
+
+    Button start=button("התחל סריקת בית",0xFF168ACD);
+    start.setTextSize(20);
+    start.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+    start.setBackground(primaryGradient());
+    LinearLayout.LayoutParams startP=new LinearLayout.LayoutParams(-1,dp(62));
+    startP.topMargin=dp(4);
+    landing.addView(start,startP);
+    start.setOnClickListener(v->startSelfScan());
+
+    gap(landing,10);
+    LinearLayout shortcuts=new LinearLayout(this);
+    shortcuts.setOrientation(LinearLayout.HORIZONTAL);
+    shortcuts.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+    landing.addView(shortcuts,new LinearLayout.LayoutParams(-1,dp(51)));
+    Button speed=button("בדיקת מהירות",0xFF173B62);
+    Button saved=button("הדוח האחרון",0xFF173B62);
+    LinearLayout.LayoutParams s1=new LinearLayout.LayoutParams(0,-1,1);
+    s1.leftMargin=dp(5);
+    LinearLayout.LayoutParams s2=new LinearLayout.LayoutParams(0,-1,1);
+    s2.rightMargin=dp(5);
+    shortcuts.addView(speed,s1);
+    shortcuts.addView(saved,s2);
+    speed.setOnClickListener(v->showAdvancedPane(0));
+    saved.setOnClickListener(v->showLatestHomeReport());
+
+    gap(landing,16);
+    Button help=button("לא מצליח להתחבר? מדריך עם תמונות",0xFF14304F);
+    help.setTextSize(14);
+    landing.addView(help,new LinearLayout.LayoutParams(-1,dp(46)));
+    help.setOnClickListener(v->openWifiHelp());
+    gap(landing,8);
+    Button more=button("כלים מתקדמים לטכנאי  ⌄",0xFF0C243E);
+    more.setTextSize(13);
+    landing.addView(more,new LinearLayout.LayoutParams(-1,dp(46)));
+    more.setOnClickListener(v->showAdvancedPane(0));
+
+    advancedPanel=column();pad(advancedPanel,12);
+    root.addView(advancedPanel);
+    Button back=button("‹ חזרה למסך הראשי",0xFF163C61);
+    advancedPanel.addView(back,new LinearLayout.LayoutParams(-1,dp(46)));
+    back.setOnClickListener(v->showHome());
+    gap(advancedPanel,11);
+    TextView advancedTitle=text("כלים מקצועיים",18,Color.WHITE,true);
+    advancedPanel.addView(advancedTitle);gap(advancedPanel,9);
+    LinearLayout nav=new LinearLayout(this);
+    nav.setOrientation(LinearLayout.HORIZONTAL);
+    nav.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+    advancedPanel.addView(nav);
     String[] labels={"מהירות","מדידות","מיקום AR","שיתוף"};
-    for(int i=0;i<4;i++){final int k=i;Button b=button(labels[i],i==0?BLUE:NAVY);
-      LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(47),1);bp.setMargins(dp(3),0,dp(3),0);nav.addView(b,bp);tabs[i]=b;b.setOnClickListener(v->showPane(k));}
-    main=column();pad(main,15);root.addView(main);
-    tests=column();pad(tests,15);root.addView(tests);
-    history=column();pad(history,15);root.addView(history);
-    guide=column();pad(guide,15);root.addView(guide);
-    cloud=column();pad(cloud,15);root.addView(cloud);
-    buildSpeed();buildMeasurements();buildGuide();buildCloud();showPane(0);
+    for(int i=0;i<4;i++){
+      final int k=i;
+      Button b=button(labels[i],i==0?BLUE:NAVY);
+      b.setTextSize(12);
+      LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(47),1);
+      bp.setMargins(dp(2),0,dp(2),0);
+      nav.addView(b,bp);tabs[i]=b;
+      b.setOnClickListener(v->showPane(k));
+    }
+    main=column();pad(main,4);advancedPanel.addView(main);
+    tests=column();pad(tests,4);advancedPanel.addView(tests);
+    history=column();pad(history,4);advancedPanel.addView(history);
+    guide=column();pad(guide,4);advancedPanel.addView(guide);
+    cloud=column();pad(cloud,4);advancedPanel.addView(cloud);
+    buildSpeed();buildMeasurements();buildGuide();buildCloud();
+    gap(advancedPanel,9);
+    Button checkUpdates=button("בדוק עדכונים לאפליקציה",0xFF12324F);
+    checkUpdates.setTextSize(13);
+    advancedPanel.addView(checkUpdates,new LinearLayout.LayoutParams(-1,dp(44)));
+    checkUpdates.setOnClickListener(v->UpdateManager.check(this,true));
+    showPane(0);
+    advancedPanel.setVisibility(View.GONE);
+
+    gap(root,12);
+    TextView footer=text("© 2026 HEN DAYAN  ·  ALL RIGHTS RESERVED",10,0xFF718AA7,false);
+    footer.setGravity(Gravity.CENTER);
+    root.addView(footer);
+    gap(root,15);
+    refreshHomeSignal();
     AppLanguage.translateTree(this,root);
-    gap(root,14);
-    TextView footer=text("© 2026 HEN DAYAN · ALL RIGHTS RESERVED",11,SUB,false);footer.setGravity(Gravity.CENTER);root.addView(footer);gap(root,22);
+  }
+  @Override public void onBackPressed(){
+    if(advancedPanel!=null&&advancedPanel.getVisibility()==View.VISIBLE){showHome();return;}
+    super.onBackPressed();
   }
   private void buildSpeed(){
     section(main,"SpeedTest PRO","המהירות המרבית שנמדדה בפועל • בחירת שרת אוטומטית • 4 חיבורים במקביל");
     LinearLayout overview=card(main);TextView sub=text("ממשק רשת ומצב קליטה",16,Color.WHITE,true);overview.addView(sub);gap(overview,6);
-    signalChip=text("מאתר איכות קליטה...",19,GREEN,true);pad(signalChip,12);signalChip.setBackground(bg(0xFFE9F7F0,12));overview.addView(signalChip);gap(overview,8);
+    signalChip=text("מאתר איכות קליטה...",19,0xFF73F1CD,true);pad(signalChip,12);signalChip.setBackground(bg(0xFF134940,12));overview.addView(signalChip);gap(overview,8);
     wifiText=text("בודק חיבור...",13,SUB,false);overview.addView(wifiText);gap(overview,7);
     overview.addView(text("🟢 טובה / מצוינת     🟡 בינונית     🔴 חלשה",12,SUB,false));
     LinearLayout big=card(main);TextView h=text("בדיקת מהירות • מד מקצועי",16,Color.WHITE,true);big.addView(h);
@@ -182,6 +350,7 @@ public final class MainActivity extends Activity {
     LinearLayout readout=new LinearLayout(this);
     readout.setOrientation(LinearLayout.HORIZONTAL);
     readout.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+    readout.setTag("fixed-ltr");
     readout.setGravity(Gravity.CENTER);
     big.addView(readout,new LinearLayout.LayoutParams(-1,dp(64)));
     speedValue=text("0.0",44,Color.WHITE,true);
@@ -403,9 +572,9 @@ public final class MainActivity extends Activity {
       if(freq>0)kind+=" • "+(freq>=5925?"6GHz":freq>=4900?"5GHz":"2.4GHz");
       wifiText.setText(AppLanguage.tr(this,kind));
       if(signalChip!=null){
-        if(kind.startsWith("Ethernet")){signalChip.setText("● חיבור קווי פעיל");signalChip.setTextColor(GREEN);signalChip.setBackground(bg(0xFFE9F7F0,12));}
-        else if(SignalQuality.valid(rssi)){signalChip.setText("● איכות קליטה: "+SignalQuality.name(rssi)+"\n"+SignalQuality.customerDescription(rssi));signalChip.setTextColor(SignalQuality.color(rssi));signalChip.setBackground(bg(rssi>=-65?0xFFE9F7F0:rssi>=-72?0xFFFFF6DF:0xFFFFEDF0,12));}
-        else{signalChip.setText("● איכות הקליטה אינה זמינה");signalChip.setTextColor(SUB);signalChip.setBackground(bg(0xFFF0F2F5,12));}
+        if(kind.startsWith("Ethernet")){signalChip.setText("● חיבור קווי פעיל");signalChip.setTextColor(0xFF73F1CD);signalChip.setBackground(bg(0xFF134940,12));}
+        else if(SignalQuality.valid(rssi)){signalChip.setText("● איכות קליטה: "+SignalQuality.name(rssi)+"\n"+SignalQuality.customerDescription(rssi));signalChip.setTextColor(SignalQuality.color(rssi));signalChip.setBackground(bg(rssi>=-65?0xFF134940:rssi>=-72?0xFF554223:0xFF57283A,12));}
+        else{signalChip.setText("● איכות הקליטה אינה זמינה");signalChip.setTextColor(0xFFE6F4FF);signalChip.setBackground(bg(0xFF234562,12));}
       }
     }catch(Exception e){wifiText.setText("נדרשת הרשאת גישה לנתוני Wi-Fi");}
   }

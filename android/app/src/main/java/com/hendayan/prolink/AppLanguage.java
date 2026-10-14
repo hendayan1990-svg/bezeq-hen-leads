@@ -91,6 +91,28 @@ public final class AppLanguage {
     put("מדריך חיבור עם תמונות","دليل اتصال بالصور","Picture connection guide","Инструкция с картинками","Guía de conexión con imágenes");
     put("פתח הגדרות Wi-Fi","فتح إعدادات Wi-Fi","Open Wi-Fi settings","Открыть настройки Wi-Fi","Abrir ajustes Wi-Fi");
     put("ביטול","إلغاء","Cancel","Отмена","Cancelar");
+    put("כיסוי Wi-Fi ביתי חכם","تغطية واي فاي منزلية ذكية","Smart home Wi-Fi coverage","Умное покрытие Wi-Fi дома","Cobertura Wi-Fi inteligente en casa");
+    put("רואים את הכיסוי.\nמשפרים את הבית.","شاهد التغطية.\nحسّن منزلك.","See the coverage.\nImprove your home.","Видьте покрытие.\nУлучшайте свой дом.","Descubre la cobertura.\nMejora tu hogar.");
+    put("סריקה קלה שמראה איפה האות חלש\nואיזה פתרון כדאי לבדוק.","فحص بسيط يوضح أين تضعف الإشارة\nوما الحل الذي يستحق التجربة.","A simple scan finds weak Wi-Fi areas\nand suggests solutions to test.","Простое сканирование покажет слабые зоны\nи варианты улучшения.","Un escaneo simple descubre zonas débiles\ny posibles soluciones.");
+    put("בודק קליטה...","جار فحص الإشارة...","Checking signal...","Проверяем сигнал...","Comprobando señal...");
+    put("בודק חיבור אלחוטי","جار فحص اتصال Wi-Fi","Checking Wi-Fi connection","Проверяем Wi-Fi","Comprobando Wi-Fi");
+    put("3 צעדים — וסיימנו","3 خطوات فقط","Just 3 simple steps","Всего 3 шага","Solo 3 pasos");
+    put("התחבר","اتصل","Connect","Подключитесь","Conéctate");
+    put("סרוק","امسح","Scan","Сканируйте","Escanea");
+    put("קבל המלצה","احصل على توصية","Get advice","Получите совет","Obtén una recomendación");
+    put("התחל סריקת בית","ابدأ فحص المنزل","Start home scan","Сканировать дом","Escanear la casa");
+    put("הדוח האחרון","آخر تقرير","Last report","Последний отчёт","Último informe");
+    put("לא מצליח להתחבר? מדריך עם תמונות","مشكلة في الاتصال؟ دليل مصور","Can't connect? Picture guide","Нет подключения? Инструкция","¿No puedes conectar? Guía visual");
+    put("כלים מתקדמים לטכנאי","أدوات متقدمة للفني","Technician tools","Инструменты техника","Herramientas del técnico");
+    put("כלים מקצועיים","أدوات احترافية","Professional tools","Профессиональные инструменты","Herramientas profesionales");
+    put("חזרה למסך הראשי","العودة للرئيسية","Back to home","На главную","Volver al inicio");
+    put("לא מחובר ל־Wi-Fi","غير متصل بشبكة Wi-Fi","Not connected to Wi-Fi","Нет подключения к Wi-Fi","Sin conexión Wi-Fi");
+    put("התחבר לרשת הביתית כדי להתחיל סריקה.","اتصل بشبكة المنزل لبدء الفحص.","Connect to home Wi-Fi before scanning.","Подключитесь к домашнему Wi-Fi для проверки.","Conéctate al Wi-Fi de casa para escanear.");
+    put("ממתין לחיבור","بانتظار الاتصال","Waiting to connect","Ожидание сети","Esperando conexión");
+    put("קליטה:","الإشارة:","Signal:","Сигнал:","Señal:");
+    put("מחובר ל־Wi-Fi • ודא שזו הרשת הביתית","متصل بالواي فاي • تأكد أنها شبكة المنزل","Wi-Fi connected • verify it is the home network","Wi-Fi подключён • проверьте домашнюю сеть","Wi-Fi conectado • verifica la red doméstica");
+    put("מחובר ל־Wi-Fi","متصل بشبكة Wi-Fi","Wi-Fi connected","Wi-Fi подключён","Wi-Fi conectado");
+    put("מוכן לסריקה","جاهز للفحص","Ready to scan","Готово к сканированию","Listo para escanear");
     put("שפה","اللغة","Language","Язык","Idioma");
   }
   private AppLanguage(){}
@@ -132,7 +154,7 @@ public final class AppLanguage {
       }
       t.setTextDirection(rtl(ctx)?View.TEXT_DIRECTION_RTL:View.TEXT_DIRECTION_LTR);
     }
-    view.setLayoutDirection(direction);
+    if(!"fixed-ltr".equals(view.getTag()))view.setLayoutDirection(direction);
     if(view instanceof ViewGroup){
       ViewGroup group=(ViewGroup)view;
       for(int i=0;i<group.getChildCount();i++)translateTree(ctx,group.getChildAt(i));
